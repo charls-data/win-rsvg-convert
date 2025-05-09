@@ -12,7 +12,7 @@ jobs:
       # 目标 MXE 三方工具链
       MXE_TARGET: x86_64-w64-mingw32.static
       # 要编译的 librsvg 版本标签
-      RSVG_TAG: v2.60.0
+      RSVG_TAG: 2.60.0
 
     steps:
       - name: Checkout repository
