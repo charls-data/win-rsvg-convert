@@ -85,7 +85,7 @@ jobs:
         upx --best --lzma ../artifacts/rsvg-convert-stripped.exe -o ../artifacts/rsvg-convert-upx.exe
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: rsvg-convert-windows
         path: artifacts/
