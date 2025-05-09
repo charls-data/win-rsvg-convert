@@ -1,119 +1,104 @@
-name: Build Windows Static rsvg-convert (Modern Meson)
+name: Build Windows rsvg-convert
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-
-env:
-  HOST: x86_64-w64-mingw32
-  PREFIX: /usr/${{ env.HOST }}
-  MESON_CROSS_FILE: ${{ github.workspace }}/cross-file.ini
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install toolchain
+    - name: 检出代码
+      uses: actions/checkout@v3
+      
+    - name: 安装依赖
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          meson \
-          ninja-build \
-          mingw-w64 \
-          upx-ucl \
-          pkg-config \
-          python3-pip \
-          ccache
+        sudo apt-get install -y mingw-w64 mingw-w64-tools
+        sudo apt-get install -y autoconf automake libtool pkg-config
+        sudo apt-get install -y libglib2.0-dev libcairo2-dev libpango1.0-dev
+        sudo apt-get install -y librsvg2-dev
         
-        # 安装交叉编译依赖库
-        sudo apt-get install -y \
-          libglib2.0-dev:${{ env.HOST }} \
-          libfreetype-dev:${{ env.HOST }} \
-          libpng-dev:${{ env.HOST }}
-
-    - name: Setup cross file
+    - name: 安装 Meson 和 Ninja
       run: |
-        cat > cross-file.ini <<EOF
-        [binaries]
-        c = '${{ env.HOST }}-gcc'
-        cpp = '${{ env.HOST }}-g++'
-        ar = '${{ env.HOST }}-ar'
-        pkgconfig = '${{ env.HOST }}-pkg-config'
-        windres = '${{ env.HOST }}-windres'
-
-        [host_machine]
-        system = 'windows'
-        cpu_family = 'x86_64'
-        cpu = 'x86_64'
-        endian = 'little'
-
-        [properties]
-        pkg_config_libdir = '${{ env.PREFIX }}/lib/pkgconfig'
-        c_args = ['-static', '-Os']
-        c_link_args = ['-static', '-Wl,--gc-sections']
-        EOF
-
-    - name: Build cairo (Meson)
+        sudo pip3 install meson ninja
+        
+    - name: 设置 MinGW 交叉编译环境
       run: |
-        # 下载最新版 cairo
-        curl -L https://gitlab.freedesktop.org/cairo/cairo/-/archive/1.18.0/cairo-1.18.0.tar.gz | tar xz
-        cd cairo-1.18.0
-
-        meson setup build \
-          --cross-file ${{ env.MESON_CROSS_FILE }} \
-          --prefix=${{ env.PREFIX }} \
-          --buildtype=release \
-          --default-library=static
-
-        meson compile -C build
-        sudo meson install -C build
-
-    - name: Build librsvg
+        echo "设置交叉编译环境变量"
+        export PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig
+        export MINGW_PREFIX=/usr/x86_64-w64-mingw32
+        
+    - name: 下载并编译 librsvg 依赖
       run: |
-        # 下载 librsvg
-        curl -L https://download.gnome.org/sources/librsvg/2.60/librsvg-2.60.0.tar.xz | tar xJ
-        cd librsvg-2.60.0
-
-        meson setup build \
-          --cross-file ${{ env.MESON_CROSS_FILE }} \
-          --prefix=${{ env.PREFIX }} \
-          --buildtype=release \
-          --default-library=static \
-          -Dintrospection=disabled
-
-        meson compile -C build
-        meson install -C build
-
-        # 优化输出
-        mkdir -p artifacts
-        ${{ env.HOST }}-strip ${{ env.PREFIX }}/bin/rsvg-convert.exe -o artifacts/rsvg-convert.exe
-        upx --best --lzma artifacts/rsvg-convert.exe -o artifacts/rsvg-convert-upx.exe
-
-    - name: Verify binary
+        # 创建构建目录
+        mkdir -p build
+        cd build
+        
+        # 下载并编译 glib (静态库)
+        git clone https://gitlab.gnome.org/GNOME/glib.git
+        cd glib
+        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
+        ninja -C _build
+        sudo ninja -C _build install
+        cd ..
+        
+        # 下载并编译 cairo (静态库)
+        git clone https://gitlab.freedesktop.org/cairo/cairo.git
+        cd cairo
+        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
+        ninja -C _build
+        sudo ninja -C _build install
+        cd ..
+        
+        # 下载并编译 pango (静态库)
+        git clone https://gitlab.gnome.org/GNOME/pango.git
+        cd pango
+        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
+        ninja -C _build
+        sudo ninja -C _build install
+        cd ..
+        
+        # 下载指定版本的 librsvg (2.60.0) 并使用 meson 构建
+        git clone https://gitlab.gnome.org/GNOME/librsvg.git
+        cd librsvg
+        git checkout 2.60.0
+        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
+        ninja -C _build
+        sudo ninja -C _build install
+        cd ..
+        
+    - name: 编译 rsvg-convert
       run: |
-        file artifacts/rsvg-convert-upx.exe
-        ! ${HOST}-objdump -p artifacts/rsvg-convert-upx.exe | grep "DLL Name"
-        ls -lh artifacts/
-
-    - name: Upload artifact
+        cd build/librsvg
+        
+        # 确保使用静态链接编译 rsvg-convert
+        cd _build/rsvg-convert
+        x86_64-w64-mingw32-gcc -o rsvg-convert.exe rsvg-convert.c \
+          -static \
+          -I$MINGW_PREFIX/include/librsvg-2.0 \
+          -I$MINGW_PREFIX/include/glib-2.0 \
+          -I$MINGW_PREFIX/lib/glib-2.0/include \
+          -I$MINGW_PREFIX/include/cairo \
+          -I$MINGW_PREFIX/include/pango-1.0 \
+          -L$MINGW_PREFIX/lib \
+          -lrsvg-2 -lcairo -lpango-1.0 -lgobject-2.0 -lglib-2.0 \
+          -lintl -liconv -lz -lm
+        
+        # 验证生成的可执行文件
+        file rsvg-convert.exe
+        
+    - name: 打包构建产物
+      run: |
+        mkdir -p dist
+        cp build/librsvg/_build/rsvg-convert/rsvg-convert.exe dist/
+        
+    - name: 上传构建产物
       uses: actions/upload-artifact@v4
       with:
         name: rsvg-convert-windows
-        path: artifacts/
-
-    - name: Create release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: artifacts/rsvg-convert-upx.exe
-        body: |
-          Statically linked Windows build
-          - Toolchain: ${{ env.HOST }}
-          - Build system: Meson
-          - Compression: UPX LZMA
-          - Size: $(ls -lh artifacts/rsvg-convert-upx.exe | awk '{print $5}')
+        path: dist/rsvg-convert.exe
