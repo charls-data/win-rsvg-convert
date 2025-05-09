@@ -22,6 +22,7 @@ jobs:
         sudo apt-get install -y autoconf automake libtool pkg-config
         sudo apt-get install -y libglib2.0-dev libcairo2-dev libpango1.0-dev
         sudo apt-get install -y librsvg2-dev
+        sudo apt-get install -y libpcre2-dev  # 添加 PCRE2 开发库
         
     - name: 安装 Meson 和 Ninja
       run: |
@@ -55,16 +56,31 @@ jobs:
         echo "PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig" >> $GITHUB_ENV
         echo "MINGW_PREFIX=/usr/x86_64-w64-mingw32" >> $GITHUB_ENV
         
+    - name: 下载并编译 PCRE2 (静态库)
+      run: |
+        mkdir -p build
+        cd build
+        
+        # 下载并编译 PCRE2 (静态库)
+        wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
+        tar -xf pcre2-10.42.tar.gz
+        cd pcre2-10.42
+        
+        # 配置 PCRE2 为静态库
+        ./configure --host=x86_64-w64-mingw32 --prefix=$MINGW_PREFIX --enable-static --disable-shared
+        make
+        sudo make install
+        cd ..
+        
     - name: 下载并编译 librsvg 依赖
       run: |
-        # 创建构建目录
-        mkdir -p build
+        # 进入构建目录
         cd build
         
         # 下载并编译 glib (静态库)
         git clone https://gitlab.gnome.org/GNOME/glib.git
         cd glib
-        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
+        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static -Dforce_posix_threads=true
         ninja -C _build
         sudo ninja -C _build install
         cd ..
