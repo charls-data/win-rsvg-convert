@@ -35,20 +35,12 @@ jobs:
             mingw-w64-x86_64-rust
             mingw-w64-x86_64-cargo-c
             mingw-w64-x86_64-pkgconf
-            mingw-w64-x86_64-cairo
             mingw-w64-x86_64-glib2
-            mingw-w64-x86_64-harfbuzz
-            mingw-w64-x86_64-pango
-            mingw-w64-x86_64-gdk-pixbuf2
-            mingw-w64-x86_64-freetype
-            mingw-w64-x86_64-expat
-            mingw-w64-x86_64-bzip2
-            mingw-w64-x86_64-libpng
-            mingw-w64-x86_64-zlib
-            mingw-w64-x86_64-brotli
-            mingw-w64-x86_64-fontconfig
-            mingw-w64-x86_64-pixman
             mingw-w64-x86_64-gcc-libs
+            mingw-w64-x86_64-gi-docgen
+            mingw-w64-x86_64-gobject-introspection
+            mingw-w64-x86_64-python-docutils
+            mingw-w64-x86_64-vala
 
       - name: Build static rsvg-convert
         shell: msys2 {0}
