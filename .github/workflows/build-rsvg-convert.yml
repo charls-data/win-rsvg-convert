@@ -50,32 +50,36 @@ jobs:
             mingw-w64-x86_64-pixman
             mingw-w64-x86_64-gcc-libs
 
-      - name: Build librsvg with Meson & Ninja
+      - name: Build static rsvg-convert
         shell: msys2 {0}
         run: |
           cd librsvg
-          mkdir build && cd build
+          mkdir build-static && cd build-static
 
-          # 使用绝对路径作为 prefix
+          # 使用绝对路径作为 prefix，并使用静态库
           meson setup build \
             --prefix $(pwd)/install \
-            --default-library shared \
-            -Dbuildtype=release \
+            --default-library static \
+            --buildtype release \
             -Db_lto=false \
             -Dintrospection=disabled \
             -Dpixbuf-loader=disabled \
             -Dtests=false \
+            -Dc_args="-static" \
+            -Dcpp_args="-static" \
+            -Dc_link_args="-static -static-libgcc" \
+            -Dcpp_link_args="-static -static-libgcc -static-libstdc++" \
             ..
 
           ninja -C build
           ninja -C build install
 
-          # 复制所有必要的 DLL 到 bin 目录
+          # 测试可执行文件
           cd install/bin
-          ldd rsvg-convert.exe | grep -i mingw | awk '{print $3}' | xargs -I{} cp {} .
+          ./rsvg-convert --version
 
-      - name: Upload rsvg-convert.exe and dependencies
+      - name: Upload static rsvg-convert.exe
         uses: actions/upload-artifact@v4
         with:
-          name: rsvg-convert-windows
-          path: librsvg/build/install/bin/*
+          name: rsvg-convert-windows-static-${{ env.RSVG_TAG }}
+          path: librsvg/build-static/install/bin/rsvg-convert.exe
