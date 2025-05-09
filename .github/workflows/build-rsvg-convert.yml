@@ -53,10 +53,10 @@ jobs:
         CC: x86_64-w64-mingw32-gcc
         CXX: x86_64-w64-mingw32-g++
         PKG_CONFIG: "pkg-config --static"
-        CFLAGS: "-static-libwinpthread"
-        CXXFLAGS: "-static-libwinpthread"
-        LDFLAGS: "-static-libwinpthread"
-        RUSTFLAGS: "-C link-args=-static-libwinpthread"
+        CFLAGS: "-static-pthreads"
+        CXXFLAGS: "-static-pthreads"
+        LDFLAGS: "-static-pthreads"
+        RUSTFLAGS: "-C link-args=-static-pthreads"
         CARGO_PROFILE_RELEASE_LTO: "thin"
       run: |
         cd librsvg
