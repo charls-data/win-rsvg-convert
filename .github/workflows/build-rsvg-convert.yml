@@ -22,7 +22,7 @@ jobs:
         run: |
           git clone --depth 1 https://gitlab.gnome.org/GNOME/librsvg.git librsvg
           cd librsvg
-          git checkout "$RSVG_TAG"
+          git checkout "${RSVG_TAG}"
 
       - name: Setup MXE APT repository
         run: |
