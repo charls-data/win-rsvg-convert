@@ -59,7 +59,7 @@ jobs:
           mkdir -p build && cd build
 
           # 静态链接所有依赖，并开启 LTO 优化
-          meson setup . \
+          meson setup \
             --cross-file $MXE_PREFIX/share/mxe/toolchain.mxe \
             --prefix install \
             --default-library=static \
