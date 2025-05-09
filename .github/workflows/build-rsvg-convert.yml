@@ -64,7 +64,7 @@ jobs:
             -Db_lto=false \
             -Dintrospection=disabled \
             -Dpixbuf-loader=disabled \
-            -Dtests=disabled \
+            -Dtests=false \
             -Dtools=enabled \
             ..
 
