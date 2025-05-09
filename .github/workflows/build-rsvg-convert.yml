@@ -69,11 +69,8 @@ jobs:
           --buildtype=release \
           -Db_lto=true \
           -Dtests=false \
-          -Dintrospection=disabled \
-          -Dvendored_cairo=false \
-          -Dvendored_glib=false \
-          -Dvendored_harfbuzz=false
-        ninja -C build          # 默认目标包含 rsvg-convert
+          -Dintrospection=disabled
+        ninja -C build
         ninja -C build install
 
     # 5️⃣ Strip 并打包
