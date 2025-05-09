@@ -24,24 +24,29 @@ jobs:
       - name: Setup MSYS2 and install dependencies
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
           update: true
-          install: |
+          install: >-
+            git
+            p7zip
             mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-binutils
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-cairo
-            mingw-w64-x86_64-pango
-            mingw-w64-x86_64-librsvg
             mingw-w64-x86_64-rust
-            mingw-w64-x86_64-rust-src
-
-      - name: Install cargo-cbuild
-        shell: msys2 {0}
-        run: |
-          cargo install cargo-c --locked
+            mingw-w64-x86_64-cargo-c
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-glib2
+            mingw-w64-x86_64-harfbuzz
+            mingw-w64-x86_64-pango
+            mingw-w64-x86_64-gdk-pixbuf2
+            mingw-w64-x86_64-freetype
+            mingw-w64-x86_64-expat
+            mingw-w64-x86_64-bzip2
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-brotli
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-pixman
 
       - name: Build librsvg with Meson & Ninja
         shell: msys2 {0}
@@ -50,9 +55,8 @@ jobs:
           mkdir build && cd build
 
           # 使用绝对路径作为 prefix
-          PREFIX=$(pwd)/install
           meson setup build \
-            --prefix install \
+            --prefix $(pwd)/install \
             --default-library static \
             -Dbuildtype=release \
             -Db_lto=true \
