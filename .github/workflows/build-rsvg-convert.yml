@@ -1,10 +1,15 @@
-name: Build Windows static rsvg-convert (Meson)
+name: Build Windows Static rsvg-convert (Modern Meson)
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
+
+env:
+  HOST: x86_64-w64-mingw32
+  PREFIX: /usr/${{ env.HOST }}
+  MESON_CROSS_FILE: ${{ github.workspace }}/cross-file.ini
 
 jobs:
   build:
@@ -13,7 +18,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup MinGW and Meson
+    - name: Install toolchain
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -22,67 +27,78 @@ jobs:
           mingw-w64 \
           upx-ucl \
           pkg-config \
-          python3-pip
+          python3-pip \
+          ccache
         
-        # 安装交叉编译的依赖工具链
-        pip install crossenv
+        # 安装交叉编译依赖库
+        sudo apt-get install -y \
+          libglib2.0-dev:${{ env.HOST }} \
+          libfreetype-dev:${{ env.HOST }} \
+          libpng-dev:${{ env.HOST }}
 
-    - name: Setup cross-compilation
-      shell: bash
+    - name: Setup cross file
       run: |
-        export HOST=x86_64-w64-mingw32
-        export CC=${HOST}-gcc
-        export CXX=${HOST}-g++
-        export AR=${HOST}-ar
-        export PKG_CONFIG=${HOST}-pkg-config
-        export PKG_CONFIG_PATH=/usr/${HOST}/lib/pkgconfig
+        cat > cross-file.ini <<EOF
+        [binaries]
+        c = '${{ env.HOST }}-gcc'
+        cpp = '${{ env.HOST }}-g++'
+        ar = '${{ env.HOST }}-ar'
+        pkgconfig = '${{ env.HOST }}-pkg-config'
+        windres = '${{ env.HOST }}-windres'
 
-        echo "HOST=${HOST}" >> $GITHUB_ENV
-        echo "CC=${CC}" >> $GITHUB_ENV
-        echo "CXX=${CXX}" >> $GITHUB_ENV
-        echo "AR=${AR}" >> $GITHUB_ENV
-        echo "PKG_CONFIG=${PKG_CONFIG}" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}" >> $GITHUB_ENV
+        [host_machine]
+        system = 'windows'
+        cpu_family = 'x86_64'
+        cpu = 'x86_64'
+        endian = 'little'
 
-    - name: Build dependencies (static)
+        [properties]
+        pkg_config_libdir = '${{ env.PREFIX }}/lib/pkgconfig'
+        c_args = ['-static', '-Os']
+        c_link_args = ['-static', '-Wl,--gc-sections']
+        EOF
+
+    - name: Build cairo (Meson)
       run: |
-        # 示例：静态编译 libxml2（其他依赖类似）
-        curl -L https://download.gnome.org/sources/libxml2/2.12/libxml2-2.12.5.tar.xz | tar xJ
-        cd libxml2-2.12.5
-        ./configure --host=${{ env.HOST }} --enable-static --disable-shared --without-python \
-          CFLAGS="-Os" LDFLAGS="-static"
-        make -j$(nproc)
-        sudo make install
-        cd ..
+        # 下载最新版 cairo
+        curl -L https://gitlab.freedesktop.org/cairo/cairo/-/archive/1.18.0/cairo-1.18.0.tar.gz | tar xz
+        cd cairo-1.18.0
 
-    - name: Build librsvg with Meson
+        meson setup build \
+          --cross-file ${{ env.MESON_CROSS_FILE }} \
+          --prefix=${{ env.PREFIX }} \
+          --buildtype=release \
+          --default-library=static
+
+        meson compile -C build
+        sudo meson install -C build
+
+    - name: Build librsvg
       run: |
-        # 下载 librsvg 2.60.0
+        # 下载 librsvg
         curl -L https://download.gnome.org/sources/librsvg/2.60/librsvg-2.60.0.tar.xz | tar xJ
         cd librsvg-2.60.0
 
-        # 配置 Meson 选项（静态链接）
         meson setup build \
-          --cross-file scripts/cross-mingw64.txt \
-          --prefix=/usr/${{ env.HOST }} \
+          --cross-file ${{ env.MESON_CROSS_FILE }} \
+          --prefix=${{ env.PREFIX }} \
           --buildtype=release \
           --default-library=static \
-          -Dintrospection=disabled \
-          -Ddocs=false \
-          -Dtests=false \
-          -Dgtk_doc=false \
-          -Dgdk_pixbuf=disabled \
-          -Drsvg_bin=true
+          -Dintrospection=disabled
 
-        # 编译并安装
         meson compile -C build
         meson install -C build
 
-        # 提取二进制文件
-        mkdir -p ../artifacts
-        cp /usr/${{ env.HOST }}/bin/rsvg-convert.exe ../artifacts/
-        ${{ env.HOST }}-strip ../artifacts/rsvg-convert.exe -o ../artifacts/rsvg-convert-stripped.exe
-        upx --best --lzma ../artifacts/rsvg-convert-stripped.exe -o ../artifacts/rsvg-convert-upx.exe
+        # 优化输出
+        mkdir -p artifacts
+        ${{ env.HOST }}-strip ${{ env.PREFIX }}/bin/rsvg-convert.exe -o artifacts/rsvg-convert.exe
+        upx --best --lzma artifacts/rsvg-convert.exe -o artifacts/rsvg-convert-upx.exe
+
+    - name: Verify binary
+      run: |
+        file artifacts/rsvg-convert-upx.exe
+        ! ${HOST}-objdump -p artifacts/rsvg-convert-upx.exe | grep "DLL Name"
+        ls -lh artifacts/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -96,7 +112,8 @@ jobs:
       with:
         files: artifacts/rsvg-convert-upx.exe
         body: |
-          Static Windows build of rsvg-convert 2.60.0 (Meson)
-          - Built with MinGW-w64
-          - All dependencies statically linked
-          - Compressed with UPX
+          Statically linked Windows build
+          - Toolchain: ${{ env.HOST }}
+          - Build system: Meson
+          - Compression: UPX LZMA
+          - Size: $(ls -lh artifacts/rsvg-convert-upx.exe | awk '{print $5}')
