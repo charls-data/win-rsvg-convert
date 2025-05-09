@@ -70,7 +70,7 @@ jobs:
         ./configure --host=x86_64-w64-mingw32 --prefix=$MINGW_PREFIX \
           --enable-static --disable-shared \
           --disable-pcre2test --disable-pcre2grep \
-          --disable-pcre2-8 --disable-pcre2-16 \
+          --enable-pcre2-8 --disable-pcre2-16 \
           --disable-pcre2-32 --disable-pcre2posix
         
         make
