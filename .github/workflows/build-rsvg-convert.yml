@@ -25,6 +25,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           update: true
+          msystem: MINGW64
           install: >-
             git
             p7zip
@@ -47,6 +48,7 @@ jobs:
             mingw-w64-x86_64-brotli
             mingw-w64-x86_64-fontconfig
             mingw-w64-x86_64-pixman
+            mingw-w64-x86_64-gcc-libs
 
       - name: Build librsvg with Meson & Ninja
         shell: msys2 {0}
@@ -57,17 +59,21 @@ jobs:
           # 使用绝对路径作为 prefix
           meson setup build \
             --prefix $(pwd)/install \
-            --default-library static \
+            --default-library shared \
             -Dbuildtype=release \
-            -Db_lto=true \
+            -Db_lto=false \
             -Dintrospection=disabled \
             ..
 
           ninja -C build
           ninja -C build install
 
-      - name: Upload rsvg-convert.exe
+          # 复制所有必要的 DLL 到 bin 目录
+          cd install/bin
+          ldd rsvg-convert.exe | grep -i mingw | awk '{print $3}' | xargs -I{} cp {} .
+
+      - name: Upload rsvg-convert.exe and dependencies
         uses: actions/upload-artifact@v4
         with:
           name: rsvg-convert-windows
-          path: librsvg/build/install/bin/rsvg-convert.exe
+          path: librsvg/build/install/bin/*
