@@ -32,6 +32,11 @@ jobs:
           echo "deb [arch=amd64] https://pkg.mxe.cc/repos/apt focal main" | sudo tee /etc/apt/sources.list.d/mxe.list
           sudo apt-get update
 
+      - name: Install build tools (Meson, Ninja, pkg-config)
+        run: |
+          sudo apt-get install -y meson ninja-build pkg-config
+        shell: bash
+
       - name: Install MXE cross compiler & static libraries
         run: |
           sudo apt-get install -y \
