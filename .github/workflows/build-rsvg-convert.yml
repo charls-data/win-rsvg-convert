@@ -1,4 +1,4 @@
-name: Cross-compile rsvg-convert for Windows (no MXE, with Rust)
+name: Build rsvg-convert on Windows (MSYS2)
 
 on:
   push:
@@ -7,123 +7,58 @@ on:
 
 jobs:
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     env:
-      # 用于调用 mingw-w64 编译器
-      MINGW_TRIPLET: x86_64-w64-mingw32
-      # vcpkg 源码目录
-      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-      # vcpkg triplet 名称
-      VCPKG_TRIPLET: x64-windows-static
-      # librsvg 版本 tag
-      RSVG_TAG: 2.60.0
+      RSVG_TAG: 2.60.0    # 要编译的 librsvg 版本
 
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
 
-      - name: Clone librsvg at tag $RSVG_TAG
+      - name: Clone librsvg source
+        shell: pwsh
         run: |
-          git clone --depth 1 \
-            --branch "$RSVG_TAG" \
+          git clone --depth 1 --branch $env:RSVG_TAG `
             https://gitlab.gnome.org/GNOME/librsvg.git librsvg
-        shell: bash
 
-      - name: Install host tools (mingw-w64, cmake, pkg-config)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            mingw-w64 cmake git pkg-config python3
-        shell: bash
-
-      - name: Bootstrap vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
-          cd $VCPKG_ROOT
-          ./bootstrap-vcpkg.sh -disableMetrics
-        shell: bash
-
-      - name: Install C/C++ dependencies via vcpkg
-        run: |
-          cd $VCPKG_ROOT
-          # 告诉 vcpkg 这是一场 Windows 跨编译
-          export VCPKG_CMAKE_SYSTEM_NAME=Windows
-          export VCPKG_CHAINLOAD_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/toolchains/mingw.cmake
-
-          # 显式指定 triplet，避免默认检测成 x64-linux
-          ./vcpkg install glib libxml2 cairo pango librsvg \
-            --triplet $VCPKG_TRIPLET
-        shell: bash
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Setup MSYS2 and install dependencies
+        uses: msys2/setup-msys2@v2
         with:
-          toolchain: stable
-          override: true
+          update: true
+          install: |
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-pango
+            mingw-w64-x86_64-librsvg
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-rust-src
 
-      - name: Configure Rust for Windows target
+      - name: Build librsvg with Meson & Ninja
+        shell: msys2 {0}
         run: |
-          rustup target add x86_64-pc-windows-gnu
-          mkdir -p ~/.cargo
-          cat >> ~/.cargo/config << 'EOF'
-          [target.x86_64-pc-windows-gnu]
-          linker = "${MINGW_TRIPLET}-gcc"
-          ar = "${MINGW_TRIPLET}-ar"
-          EOF
-        shell: bash
-
-      - name: Install cargo-c (provides cargo-cbuild)
-        run: |
-          source $HOME/.cargo/env
-          cargo install cargo-c --locked
-        shell: bash
-
-      - name: Configure and build librsvg with Meson
-        run: |
-          # 交叉编译器和 pkg-config 路径
-          export CC=${MINGW_TRIPLET}-gcc
-          export CXX=${MINGW_TRIPLET}-g++
-          export PKG_CONFIG_PATH=$VCPKG_ROOT/installed/${VCPKG_TRIPLET}/lib/pkgconfig
-
           cd librsvg
           mkdir -p build && cd build
 
-          # Meson cross-file（显式指定 cargo-cbuild）
-          cat > crossfile.ini << 'EOF'
-          [binaries]
-          c = '${MINGW_TRIPLET}-gcc'
-          cpp = '${MINGW_TRIPLET}-g++'
-          ar = '${MINGW_TRIPLET}-ar'
-          strip = '${MINGW_TRIPLET}-strip'
-          pkg-config = 'pkg-config'
-          cargo-cbuild = '${HOME}/.cargo/bin/cargo-cbuild'
-
-          [properties]
-          needs_exe_wrapper = true
-
-          [host_machine]
-          system = 'windows'
-          cpu_family = 'x86_64'
-          cpu = 'x86_64'
-          endian = 'little'
-          EOF
-
-          # 绝对路径 prefix
+          # 使用绝对路径作为前缀
           PREFIX=$(pwd)/install
-          meson setup crossbuild \
-            --cross-file crossfile.ini \
+
+          # 正确的 meson 语法：先所有选项，再把 .. 当成源码目录
+          meson setup \
             --prefix "$PREFIX" \
-            --default-library=static \
+            --default-library static \
             -Dbuildtype=release \
+            -Db_lto=true \
             -Dintrospection=disabled \
             ..
 
-          ninja -C crossbuild
-          ninja -C crossbuild install
-        shell: bash
+          ninja
+          ninja install
 
-      - name: Upload Windows exe
+      - name: Upload rsvg-convert.exe
         uses: actions/upload-artifact@v4
         with:
           name: rsvg-convert-windows
-          path: librsvg/build/crossbuild/install/bin/rsvg-convert.exe
+          path: librsvg/build/install/bin/rsvg-convert.exe
