@@ -9,7 +9,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     env:
-      RSVG_TAG: 2.60.0   # 指定 librsvg 版本
+      RSVG_TAG: 2.60.0   # 指定要编译的 librsvg 版本
 
     steps:
       - name: Checkout this repo
@@ -37,20 +37,17 @@ jobs:
             mingw-w64-x86_64-rust-src
 
       - name: Install cargo-cbuild
-        shell: msys2 {0}
+        shell: msys2 {msystem=mingw64}
         run: |
           cargo install cargo-c --locked
 
       - name: Build librsvg with Meson & Ninja
-        shell: msys2 {0}
+        shell: msys2 {msystem=mingw64}
         run: |
-          # 确保 cargo-cbuild 在 PATH
-          export PATH="$HOME/.cargo/bin:$PATH"
-
           cd librsvg
           mkdir -p build && cd build
 
-          # 生成 Meson cross-file，声明 cargo-cbuild
+          # 生成 Meson cross-file，显式声明需要的工具
           cat > crossfile.ini << 'EOF'
           [binaries]
           c = 'x86_64-w64-mingw32-gcc'
@@ -70,8 +67,9 @@ jobs:
           endian = 'little'
           EOF
 
-          # 用绝对路径作为 prefix
+          # 使用绝对路径作为安装前缀
           PREFIX=$(pwd)/install
+
           meson setup \
             --cross-file crossfile.ini \
             --prefix "$PREFIX" \
