@@ -63,7 +63,7 @@ jobs:
           --default-library=static \
           --buildtype=release \
           -Db_lto=true \
-          -Dgtk_doc=false -Dtests=false -Dintrospection=disabled
+          -Dtests=false -Dintrospection=disabled
         ninja -C build rsvg-convert
         ninja -C build install
 
