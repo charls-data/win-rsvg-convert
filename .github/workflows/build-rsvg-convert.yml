@@ -65,7 +65,6 @@ jobs:
             -Dintrospection=disabled \
             -Dpixbuf-loader=disabled \
             -Dtests=false \
-            -Dtools=enabled \
             ..
 
           ninja -C build
