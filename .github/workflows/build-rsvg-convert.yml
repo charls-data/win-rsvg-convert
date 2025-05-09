@@ -46,7 +46,7 @@ jobs:
       - name: Install cargo-cbuild
         run: |
           source $HOME/.cargo/env
-          cargo install cargo-cbuild --locked
+          cargo install cargo-c --locked
         shell: bash
   
       - name: Install MXE cross compiler & static libraries
