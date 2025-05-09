@@ -1,0 +1,88 @@
+name: build-static-lto-rsvg-convert
+
+on:
+  push:
+    tags: [ "v*" ]          # 推送 vX.Y.Z 时触发
+  workflow_dispatch:
+
+jobs:
+  win-lto:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    # 1️⃣  获取仓库
+    - uses: actions/checkout@v4
+
+    # 2️⃣  把当前 tag 写成 LIBRSVG_VER（去掉前导 v）
+    - name: Set librsvg version from tag
+      shell: bash
+      run: |
+        TAG="${{ github.ref_name }}"          # 例如 v2.58.6
+        echo "LIBRSVG_VER=${TAG#v}" >> $GITHUB_ENV
+
+    # 3️⃣  安装 MSYS2 & 工具链
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          git
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-meson
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-rust
+          mingw-w64-x86_64-cairo
+          mingw-w64-x86_64-pango
+          mingw-w64-x86_64-harfbuzz
+          mingw-w64-x86_64-gdk-pixbuf2
+          mingw-w64-x86_64-glib2
+
+    # 4️⃣  克隆并 checkout 与 tag 对应的 librsvg 版本
+    - name: Clone librsvg @ ${{ env.LIBRSVG_VER }}
+      run: |
+        git clone https://gitlab.gnome.org/GNOME/librsvg.git
+        cd librsvg
+        git checkout "${LIBRSVG_VER}"
+
+    # 5️⃣  构建（静态 libwinpthread + LTO）
+    - name: Build rsvg-convert (static + LTO)
+      env:
+        PKG_CONFIG: "pkg-config --static"
+        CFLAGS: "-static-libwinpthread"
+        CXXFLAGS: "-static-libwinpthread"
+        LDFLAGS: "-static-libwinpthread"
+        RUSTFLAGS: "-C link-args=-static-libwinpthread"
+        CARGO_PROFILE_RELEASE_LTO: "thin"
+      run: |
+        cd librsvg
+        meson setup build \
+          --prefix=$(pwd)/inst \
+          --default-library=static \
+          --buildtype=release \
+          -Db_lto=true \
+          -Dgtk_doc=false -Dtests=false -Dintrospection=disabled
+        ninja -C build rsvg-convert
+        ninja -C build install
+
+    # 6️⃣  Strip 并收集
+    - name: Strip & stage
+      run: |
+        mkdir dist
+        cp librsvg/inst/bin/rsvg-convert.exe dist/rsvg-convert.exe
+        x86_64-w64-mingw32-strip -s dist/rsvg-convert.exe
+
+    # 7️⃣  压缩为 zip
+    - name: Zip artifact
+      shell: bash
+      run: |
+        cd dist
+        7z a ../rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip rsvg-convert.exe
+
+    # 8️⃣  上传工件
+    - uses: actions/upload-artifact@v4
+      with:
+        name: rsvg-convert-windows
+        path: rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip
