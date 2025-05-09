@@ -58,9 +58,28 @@ jobs:
           cd librsvg
           mkdir -p build && cd build
 
+          # 生成 Meson cross-file，指定 MXE 提供的交叉编译工具
+          cat > mxe_cross_file.txt <<EOF
+          [binaries]
+          c = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-gcc'
+          cpp = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-g++'
+          ar = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-ar'
+          strip = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-strip'
+          pkgconfig = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-pkg-config'
+
+          [properties]
+          needs_exe_wrapper = true
+
+          [host_machine]
+          system = 'windows'
+          cpu_family = 'x86_64'
+          cpu = 'x86_64'
+          endian = 'little'
+          EOF
+
           # 静态链接所有依赖，并开启 LTO 优化
           meson setup \
-            --cross-file $MXE_PREFIX/share/mxe/toolchain.mxe \
+            --cross-file mxe_cross_file.txt \
             --prefix install \
             --default-library=static \
             -Dbuildtype=release \
