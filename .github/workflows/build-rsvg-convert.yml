@@ -67,7 +67,7 @@ jobs:
           --buildtype=release \
           -Db_lto=true \
           -Dtests=false -Dintrospection=disabled
-        ninja -C build rsvg-convert
+        ninja -C build
         ninja -C build install
 
     # 6️⃣  Strip 并收集
