@@ -46,11 +46,17 @@ jobs:
       - name: Install C/C++ dependencies via vcpkg
         run: |
           cd $VCPKG_ROOT
+          # 告诉 vcpkg 这是一次 Windows 跨编译，使用 mingw toolchain
+          export VCPKG_CMAKE_SYSTEM_NAME=Windows
+          export VCPKG_CHAINLOAD_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/toolchains/mingw.cmake
+
+          # 安装所有静态依赖，triplet 用小写和连字符
           ./vcpkg install \
             glib:${VCPKG_TRIPLET} \
             libxml2:${VCPKG_TRIPLET} \
             cairo:${VCPKG_TRIPLET} \
-            pango:${VCPKG_TRIPLET}
+            pango:${VCPKG_TRIPLET} \
+            librsvg:${VCPKG_TRIPLET}
         shell: bash
 
       - name: Install Rust toolchain
