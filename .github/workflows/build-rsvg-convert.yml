@@ -1,147 +1,64 @@
-name: Build Windows rsvg-convert
+name: Cross-compile rsvg-convert for Windows
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  # 允许手动触发
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: 检出代码
-      uses: actions/checkout@v3
-      
-    - name: 安装依赖
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Install native prerequisites
       run: |
         sudo apt-get update
-        sudo apt-get install -y mingw-w64 mingw-w64-tools
-        sudo apt-get install -y autoconf automake libtool pkg-config
-        sudo apt-get install -y libglib2.0-dev libcairo2-dev libpango1.0-dev
-        sudo apt-get install -y librsvg2-dev
-        sudo apt-get install -y libpcre2-dev  # 添加 PCRE2 开发库
-        
-    - name: 安装 Meson 和 Ninja
-      run: |
-        sudo pip3 install meson ninja
-        
-    - name: 创建 MinGW 交叉编译配置
-      run: |
-        # 创建 meson 交叉编译配置目录
-        sudo mkdir -p /usr/share/mingw
-        
-        # 创建交叉编译配置文件
-        cat << EOF | sudo tee /usr/share/mingw/toolchain-x86_64-w64-mingw32.meson
-        [binaries]
-        c = 'x86_64-w64-mingw32-gcc'
-        cpp = 'x86_64-w64-mingw32-g++'
-        ar = 'x86_64-w64-mingw32-ar'
-        strip = 'x86_64-w64-mingw32-strip'
-        pkgconfig = 'pkg-config'
-        windres = 'x86_64-w64-mingw32-windres'
-        
-        [host_machine]
-        system = 'windows'
-        cpu_family = 'x86_64'
-        cpu = 'x86_64'
-        endian = 'little'
-        EOF
-        
-    - name: 设置 MinGW 交叉编译环境
-      run: |
-        echo "设置交叉编译环境变量"
-        echo "PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig" >> $GITHUB_ENV
-        echo "MINGW_PREFIX=/usr/x86_64-w64-mingw32" >> $GITHUB_ENV
-        
-    - name: 下载并编译 PCRE2 (静态库)
+        sudo apt-get install -y \
+          git \
+          mingw-w64 \
+          meson \
+          ninja-build \
+          pkg-config
+
+    - name: Setup MXE (x86_64-w64-mingw32, static)
+      uses: stefanscherer/setup-mxe@v3
+      with:
+        mxe: x86_64-w64-mingw32.static
+        packages: |
+          glib
+          libxml2
+          cairo
+          pango
+          librsvg
+
+    - name: Configure Meson build
+      env:
+        MXE_ROOT: /usr/lib/mxe/usr/x86_64-w64-mingw32.static
+        PATH: $MXE_ROOT/bin:$PATH
+        PKG_CONFIG_PATH: $MXE_ROOT/lib/pkgconfig
       run: |
         mkdir -p build
         cd build
-        
-        # 下载并编译 PCRE2 (静态库)
-        wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
-        tar -xf pcre2-10.42.tar.gz
-        cd pcre2-10.42
-        
-        # 配置 PCRE2 为静态库，禁用测试程序
-        ./configure --host=x86_64-w64-mingw32 --prefix=$MINGW_PREFIX \
-          --enable-static --disable-shared \
-          --disable-pcre2test --disable-pcre2grep \
-          --enable-pcre2-8 --disable-pcre2-16 \
-          --disable-pcre2-32 --disable-pcre2posix --disable-pcre2posix-test
-        
-        make -k
-        sudo make -k install
-        cd ..
-        
-    - name: 下载并编译 librsvg 依赖
+        meson setup . \
+          --cross-file $MXE_ROOT/share/mxe/toolchain.mxe \
+          --prefix $PWD/install \
+          --default-library=static \
+          -Dbuildtype=release \
+          -Db_lto=true \
+          -Dintrospection=disabled \
+          ..
+
+    - name: Build and install
       run: |
-        # 进入构建目录
         cd build
-        
-        # 下载并编译 glib (静态库)
-        git clone https://gitlab.gnome.org/GNOME/glib.git
-        cd glib
-        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static -Dforce_posix_threads=true
-        ninja -C _build
-        sudo ninja -C _build install
-        cd ..
-        
-        # 下载并编译 cairo (静态库)
-        git clone https://gitlab.freedesktop.org/cairo/cairo.git
-        cd cairo
-        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
-        ninja -C _build
-        sudo ninja -C _build install
-        cd ..
-        
-        # 下载并编译 pango (静态库)
-        git clone https://gitlab.gnome.org/GNOME/pango.git
-        cd pango
-        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
-        ninja -C _build
-        sudo ninja -C _build install
-        cd ..
-        
-        # 下载指定版本的 librsvg (2.60.0) 并使用 meson 构建
-        git clone https://gitlab.gnome.org/GNOME/librsvg.git
-        cd librsvg
-        git checkout 2.60.0
-        meson setup _build --prefix=$MINGW_PREFIX --cross-file=/usr/share/mingw/toolchain-x86_64-w64-mingw32.meson --default-library=static
-        ninja -C _build
-        sudo ninja -C _build install
-        cd ..
-        
-    - name: 编译 rsvg-convert
-      run: |
-        cd build/librsvg
-        
-        # 确保使用静态链接编译 rsvg-convert
-        cd _build/rsvg-convert
-        x86_64-w64-mingw32-gcc -o rsvg-convert.exe rsvg-convert.c \
-          -static \
-          -I$MINGW_PREFIX/include/librsvg-2.0 \
-          -I$MINGW_PREFIX/include/glib-2.0 \
-          -I$MINGW_PREFIX/lib/glib-2.0/include \
-          -I$MINGW_PREFIX/include/cairo \
-          -I$MINGW_PREFIX/include/pango-1.0 \
-          -L$MINGW_PREFIX/lib \
-          -lrsvg-2 -lcairo -lpango-1.0 -lgobject-2.0 -lglib-2.0 \
-          -lintl -liconv -lz -lm
-        
-        # 验证生成的可执行文件
-        file rsvg-convert.exe
-        
-    - name: 打包构建产物
-      run: |
-        mkdir -p dist
-        cp build/librsvg/_build/rsvg-convert/rsvg-convert.exe dist/
-        
-    - name: 上传构建产物
-      uses: actions/upload-artifact@v4
+        ninja
+        ninja install
+
+    - name: Upload rsvg-convert.exe
+      uses: actions/upload-artifact@v3
       with:
         name: rsvg-convert-windows
-        path: dist/rsvg-convert.exe
+        path: build/install/bin/rsvg-convert.exe
