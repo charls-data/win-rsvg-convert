@@ -37,6 +37,18 @@ jobs:
           sudo apt-get install -y meson ninja-build pkg-config
         shell: bash
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-cbuild
+        run: |
+          source $HOME/.cargo/env
+          cargo install cargo-cbuild --locked
+        shell: bash
+  
       - name: Install MXE cross compiler & static libraries
         run: |
           sudo apt-get install -y \
