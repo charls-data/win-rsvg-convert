@@ -50,6 +50,8 @@ jobs:
     # 5️⃣  构建（静态 libwinpthread + LTO）
     - name: Build rsvg-convert (static + LTO)
       env:
+        CC: x86_64-w64-mingw32-gcc
+        CXX: x86_64-w64-mingw32-g++
         PKG_CONFIG: "pkg-config --static"
         CFLAGS: "-static-libwinpthread"
         CXXFLAGS: "-static-libwinpthread"
