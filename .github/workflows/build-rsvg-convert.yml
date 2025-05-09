@@ -63,6 +63,9 @@ jobs:
             -Dbuildtype=release \
             -Db_lto=false \
             -Dintrospection=disabled \
+            -Dpixbuf-loader=disabled \
+            -Dtests=disabled \
+            -Dtools=enabled \
             ..
 
           ninja -C build
