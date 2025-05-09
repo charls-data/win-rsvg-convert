@@ -38,6 +38,18 @@ jobs:
             mingw-w64-x86_64-rust
             mingw-w64-x86_64-rust-src
 
+      - name: Debug MSYS2 PATH & tools
+        shell: msys2 {0}
+        run: |
+          echo "HOME=$HOME"
+          echo "PATH=$PATH"
+          echo "--- binutils ---"
+          ls -l /mingw64/bin/x86_64-w64-mingw32-ar.exe || echo "ar not found"
+          which x86_64-w64-mingw32-ar || echo "which ar failed"
+          echo "--- cargo-cbuild ---"
+          ls -l $HOME/.cargo/bin/cargo-cbuild.exe || echo "cargo-cbuild not found"
+          which cargo-cbuild || echo "which cargo-cbuild failed"
+
       - name: Install cargo-cbuild
         shell: msys2 {0}
         run: |
