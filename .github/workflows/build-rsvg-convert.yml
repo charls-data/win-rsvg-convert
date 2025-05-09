@@ -38,63 +38,29 @@ jobs:
             mingw-w64-x86_64-rust
             mingw-w64-x86_64-rust-src
 
-      - name: Debug MSYS2 PATH & tools
-        shell: msys2 {0}
-        run: |
-          echo "HOME=$HOME"
-          echo "PATH=$PATH"
-          echo "--- binutils ---"
-          ls -l /mingw64/bin/x86_64-w64-mingw32-ar.exe || echo "ar not found"
-          which x86_64-w64-mingw32-ar || echo "which ar failed"
-          echo "--- cargo-cbuild ---"
-          ls -l $HOME/.cargo/bin/cargo-cbuild.exe || echo "cargo-cbuild not found"
-          which cargo-cbuild || echo "which cargo-cbuild failed"
-
       - name: Install cargo-cbuild
         shell: msys2 {0}
         run: |
-          export PATH=/mingw64/bin:$PATH
           cargo install cargo-c --locked
 
       - name: Build librsvg with Meson & Ninja
         shell: msys2 {0}
         run: |
-          export PATH=/mingw64/bin:$PATH
           cd librsvg
           mkdir build && cd build
 
-          # 生成 Meson cross-file
-          cat > crossfile.ini << 'EOF'
-          [binaries]
-          c = 'x86_64-w64-mingw32-gcc'
-          cpp = 'x86_64-w64-mingw32-g++'
-          ar = 'x86_64-w64-mingw32-ar'
-          strip = 'x86_64-w64-mingw32-strip'
-          pkg-config = 'pkg-config'
-          cargo-cbuild = 'cargo-cbuild'
-
-          [properties]
-          needs_exe_wrapper = true
-
-          [host_machine]
-          system = 'windows'
-          cpu_family = 'x86_64'
-          cpu = 'x86_64'
-          endian = 'little'
-          EOF
-
           # 使用绝对路径作为 prefix
           PREFIX=$(pwd)/install
-          meson setup \
-            --cross-file crossfile.ini \
-            --prefix "$PREFIX" \
+          meson setup build \
+            --prefix install \
             --default-library static \
             -Dbuildtype=release \
             -Db_lto=true \
             -Dintrospection=disabled \
             ..
-          ninja
-          ninja install
+
+          ninja -C build
+          ninja -C build install
 
       - name: Upload rsvg-convert.exe
         uses: actions/upload-artifact@v4
