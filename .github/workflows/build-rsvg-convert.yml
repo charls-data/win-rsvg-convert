@@ -2,7 +2,7 @@ name: build-static-lto-rsvg-convert
 
 on:
   push:
-    tags: [ "v*" ]          # 例如 v2.60.0
+    tags: [ "v*" ]        # 如 v2.60.0
   workflow_dispatch:
 
 jobs:
@@ -13,58 +13,51 @@ jobs:
         shell: msys2 {0}
 
     steps:
-    # 0️⃣  取当前仓库（如需补丁可放在此仓库）
+    # 0️⃣ 拉当前仓库（如需补丁可放这）
     - uses: actions/checkout@v4
 
-    # 1️⃣  从 tag 解析出版本号（去掉前导 v）
-    - name: Set librsvg version env
+    # 1️⃣ 从 tag 提取版本号
+    - name: Set librsvg version
       shell: bash
-      run: |
-        echo "LIBRSVG_VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      run: echo "LIBRSVG_VER=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
-    # 2️⃣  安装 MSYS2 + MinGW-w64 工具链、依赖及其静态包
+    # 2️⃣ 安装 MSYS2 + 依赖（全部是真实存在的包）
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         update: true
         install: >-
-          git
-          p7zip
+          git p7zip
           mingw-w64-x86_64-toolchain
-          mingw-w64-x86_64-meson
-          mingw-w64-x86_64-ninja
-          mingw-w64-x86_64-rust
-          mingw-w64-x86_64-cargo-c
+          mingw-w64-x86_64-meson mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-rust mingw-w64-x86_64-cargo-c
           mingw-w64-x86_64-pkgconf
-          # ─── runtime deps + 对应静态包 ───
-          mingw-w64-x86_64-cairo mingw-w64-x86_64-cairo-static
-          mingw-w64-x86_64-glib2 mingw-w64-x86_64-glib2-static
-          mingw-w64-x86_64-harfbuzz mingw-w64-x86_64-harfbuzz-static
+          mingw-w64-x86_64-cairo
+          mingw-w64-x86_64-glib2
+          mingw-w64-x86_64-harfbuzz
           mingw-w64-x86_64-pango
           mingw-w64-x86_64-gdk-pixbuf2
-          mingw-w64-x86_64-freetype mingw-w64-x86_64-freetype-static
-          mingw-w64-x86_64-expat mingw-w64-x86_64-expat-static
-          mingw-w64-x86_64-bzip2-static
-          mingw-w64-x86_64-libpng-static
-          mingw-w64-x86_64-zlib-static
-          mingw-w64-x86_64-brotli-static
-          mingw-w64-x86_64-fontconfig mingw-w64-x86_64-fontconfig-static
-          mingw-w64-x86_64-pixman mingw-w64-x86_64-pixman-static
+          mingw-w64-x86_64-freetype
+          mingw-w64-x86_64-expat
+          mingw-w64-x86_64-bzip2
+          mingw-w64-x86_64-libpng
+          mingw-w64-x86_64-zlib
+          mingw-w64-x86_64-brotli
+          mingw-w64-x86_64-fontconfig
+          mingw-w64-x86_64-pixman
 
-    # 3️⃣  克隆 upstream librsvg 并 checkout 与 tag 对应版本
-    - name: Clone librsvg @ ${{ env.LIBRSVG_VER }}
+    # 3️⃣ 克隆 upstream librsvg 对应版本
+    - name: Clone librsvg
       run: |
         git clone https://gitlab.gnome.org/GNOME/librsvg.git
         cd librsvg
-        git checkout "${LIBRSVG_VER}"
+        git checkout "$LIBRSVG_VER"
 
-    # 4️⃣  构建 rsvg-convert（LTO + 全静态）
+    # 4️⃣ 构建 rsvg-convert：全静态 + LTO
     - name: Build (static + LTO)
       env:
-        # 强制使用 GCC 链接，保证 -static-libstdc++ 等可用
         CC:  x86_64-w64-mingw32-gcc
         CXX: x86_64-w64-mingw32-g++
-        # 仅在链接阶段统一静态化 C++/pthread
         LDFLAGS:  "-static -static-libstdc++ -static-libgcc -lwinpthread"
         RUSTFLAGS: "-C link-arg=-static -C link-arg=-static-libstdc++ -C link-arg=-static-libgcc -C link-arg=-lwinpthread"
         CARGO_PROFILE_RELEASE_LTO: "thin"
@@ -80,19 +73,19 @@ jobs:
           -Dvendored_cairo=false \
           -Dvendored_glib=false \
           -Dvendored_harfbuzz=false
-        ninja -C build
+        ninja -C build          # 默认目标包含 rsvg-convert
         ninja -C build install
 
-    # 5️⃣  Strip 并打包
+    # 5️⃣ Strip 并打包
     - name: Strip & zip
       run: |
-        mkdir -p dist
+        mkdir dist
         cp librsvg/inst/bin/rsvg-convert.exe dist/rsvg-convert.exe
         x86_64-w64-mingw32-strip -s dist/rsvg-convert.exe
         7z a rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip dist/rsvg-convert.exe
         ls -lh rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip
 
-    # 6️⃣  上传 ZIP 工件
+    # 6️⃣ 上传工件
     - uses: actions/upload-artifact@v4
       with:
         name: rsvg-convert-windows
