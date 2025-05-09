@@ -66,8 +66,11 @@ jobs:
         tar -xf pcre2-10.42.tar.gz
         cd pcre2-10.42
         
-        # 配置 PCRE2 为静态库
-        ./configure --host=x86_64-w64-mingw32 --prefix=$MINGW_PREFIX --enable-static --disable-shared
+        # 配置 PCRE2 为静态库，禁用测试程序
+        ./configure --host=x86_64-w64-mingw32 --prefix=$MINGW_PREFIX \
+          --enable-static --disable-shared \
+          --disable-pcre2test --disable-pcre2grep
+        
         make
         sudo make install
         cd ..
