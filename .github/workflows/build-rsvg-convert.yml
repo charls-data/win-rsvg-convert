@@ -27,11 +27,33 @@ jobs:
       run: |
         sudo pip3 install meson ninja
         
+    - name: 创建 MinGW 交叉编译配置
+      run: |
+        # 创建 meson 交叉编译配置目录
+        sudo mkdir -p /usr/share/mingw
+        
+        # 创建交叉编译配置文件
+        cat << EOF | sudo tee /usr/share/mingw/toolchain-x86_64-w64-mingw32.meson
+        [binaries]
+        c = 'x86_64-w64-mingw32-gcc'
+        cpp = 'x86_64-w64-mingw32-g++'
+        ar = 'x86_64-w64-mingw32-ar'
+        strip = 'x86_64-w64-mingw32-strip'
+        pkgconfig = 'pkg-config'
+        windres = 'x86_64-w64-mingw32-windres'
+        
+        [host_machine]
+        system = 'windows'
+        cpu_family = 'x86_64'
+        cpu = 'x86_64'
+        endian = 'little'
+        EOF
+        
     - name: 设置 MinGW 交叉编译环境
       run: |
         echo "设置交叉编译环境变量"
-        export PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig
-        export MINGW_PREFIX=/usr/x86_64-w64-mingw32
+        echo "PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig" >> $GITHUB_ENV
+        echo "MINGW_PREFIX=/usr/x86_64-w64-mingw32" >> $GITHUB_ENV
         
     - name: 下载并编译 librsvg 依赖
       run: |
