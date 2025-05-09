@@ -1,89 +1,76 @@
-name: build-static-lto-rsvg-convert
+name: Build rsvg-convert (static win64)
 
 on:
   push:
-    tags: [ "v*" ]        # 如 v2.60.0
-  workflow_dispatch:
+  pull_request:
 
 jobs:
-  win-static:
+  build:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-
     steps:
-    # 0️⃣ 拉当前仓库（如需补丁可放这）
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    # 1️⃣ 从 tag 提取版本号
-    - name: Set librsvg version
-      shell: bash
-      run: echo "LIBRSVG_VER=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      # 1. 安装 MSYS2 + 依赖
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          install: >-
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-cargo-c
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-glib2
+            mingw-w64-x86_64-harfbuzz
+            mingw-w64-x86_64-pango
+            mingw-w64-x86_64-gdk-pixbuf2
+            mingw-w64-x86_64-freetype
+            mingw-w64-x86_64-expat
+            mingw-w64-x86_64-bzip2
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-brotli
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-pixman
 
-    # 2️⃣ 安装 MSYS2 + 依赖（全部是真实存在的包）
-    - name: Setup MSYS2
-      uses: msys2/setup-msys2@v2
-      with:
-        update: true
-        install: >-
-          git p7zip
-          mingw-w64-x86_64-toolchain
-          mingw-w64-x86_64-meson mingw-w64-x86_64-ninja
-          mingw-w64-x86_64-rust mingw-w64-x86_64-cargo-c
-          mingw-w64-x86_64-pkgconf
-          mingw-w64-x86_64-cairo
-          mingw-w64-x86_64-glib2
-          mingw-w64-x86_64-harfbuzz
-          mingw-w64-x86_64-pango
-          mingw-w64-x86_64-gdk-pixbuf2
-          mingw-w64-x86_64-freetype
-          mingw-w64-x86_64-expat
-          mingw-w64-x86_64-bzip2
-          mingw-w64-x86_64-libpng
-          mingw-w64-x86_64-zlib
-          mingw-w64-x86_64-brotli
-          mingw-w64-x86_64-fontconfig
-          mingw-w64-x86_64-pixman
+      # 2. 固定环境变量（静态 + CRT）
+      - name: Prepare env
+        shell: msys2 {0}
+        run: |
+          echo 'export PKG_CONFIG="pkg-config --static"' >> ~/.bashrc
+          echo 'export RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-static -C link-arg=-static-libgcc -C link-arg=-static-libstdc++"' >> ~/.bashrc
 
-    # 3️⃣ 克隆 upstream librsvg 对应版本
-    - name: Clone librsvg
-      run: |
-        git clone https://gitlab.gnome.org/GNOME/librsvg.git
-        cd librsvg
-        git checkout "$LIBRSVG_VER"
+      # 3. 配置 Meson
+      - name: Meson configure
+        shell: msys2 {0}
+        run: |
+          source ~/.bashrc
+          cd librsvg
+          meson setup build \
+            --wrap-mode=nodownload \
+            --default-library=static \
+            -Db_lto=true \
+            -Dintrospection=disabled
 
-    # 4️⃣ 构建 rsvg-convert：全静态 + LTO
-    - name: Build (static + LTO)
-      env:
-        CC:  x86_64-w64-mingw32-gcc
-        CXX: x86_64-w64-mingw32-g++
-        LDFLAGS:  "-static -static-libstdc++ -static-libgcc -lwinpthread"
-        RUSTFLAGS: "-C link-arg=-static -C link-arg=-static-libstdc++ -C link-arg=-static-libgcc -C link-arg=-lwinpthread"
-        CARGO_PROFILE_RELEASE_LTO: "thin"
-      run: |
-        cd librsvg
-        meson setup build \
-          --prefix=$(pwd)/inst \
-          --default-library=static \
-          --buildtype=release \
-          -Db_lto=true \
-          -Dtests=false \
-          -Dintrospection=disabled
-        ninja -C build
-        ninja -C build install
+      # 4. 编译
+      - name: Ninja build
+        shell: msys2 {0}
+        run: |
+          source ~/.bashrc
+          cd librsvg/build
+          ninja -j$(nproc)
 
-    # 5️⃣ Strip 并打包
-    - name: Strip & zip
-      run: |
-        mkdir dist
-        cp librsvg/inst/bin/rsvg-convert.exe dist/rsvg-convert.exe
-        x86_64-w64-mingw32-strip -s dist/rsvg-convert.exe
-        7z a rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip dist/rsvg-convert.exe
-        ls -lh rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip
+      # 5. 打包产物
+      - name: Collect artifact
+        shell: msys2 {0}
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          cp rsvg_convert/rsvg-convert.exe $GITHUB_WORKSPACE/artifacts/
 
-    # 6️⃣ 上传工件
-    - uses: actions/upload-artifact@v4
-      with:
-        name: rsvg-convert-windows
-        path: rsvg-convert-${{ env.LIBRSVG_VER }}-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rsvg-convert-static
+          path: artifacts/rsvg-convert.exe
