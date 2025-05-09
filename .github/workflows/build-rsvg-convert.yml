@@ -65,7 +65,7 @@ jobs:
           cpp = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-g++'
           ar = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-ar'
           strip = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-strip'
-          pkgconfig = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-pkg-config'
+          pkg-config = '$MXE_PREFIX/bin/x86_64-w64-mingw32.static-pkg-config'
 
           [properties]
           needs_exe_wrapper = true
@@ -78,9 +78,10 @@ jobs:
           EOF
 
           # 静态链接所有依赖，并开启 LTO 优化
+          PREFIX=$(pwd)/install
           meson setup \
             --cross-file mxe_cross_file.txt \
-            --prefix install \
+            --prefix "${PREFIX}" \
             --default-library=static \
             -Dbuildtype=release \
             -Db_lto=true \
@@ -89,6 +90,7 @@ jobs:
 
           ninja
           ninja install
+        shell: bash
 
       - name: Upload rsvg-convert.exe
         uses: actions/upload-artifact@v4
