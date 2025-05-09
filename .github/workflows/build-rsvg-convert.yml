@@ -9,73 +9,64 @@ jobs:
   build-windows:
     runs-on: ubuntu-latest
     env:
+      # 目标 MXE 三方工具链
       MXE_TARGET: x86_64-w64-mingw32.static
-      MXE_PREFIX: /usr/lib/mxe/usr/${{ env.MXE_TARGET }}
-      RSVG_TAG: v2.60.0   # 这里改为你需要的 librsvg Git 标签或分支
+      # 要编译的 librsvg 版本标签
+      RSVG_TAG: v2.60.0
 
     steps:
-    - name: Checkout workflow repo
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Clone librsvg source
-      run: |
-        git clone --depth 1 \
-          https://gitlab.gnome.org/GNOME/librsvg.git librsvg
-        cd librsvg
-        git checkout "${RSVG_TAG}"
-      shell: bash
+      - name: Clone librsvg source
+        run: |
+          git clone --depth 1 https://gitlab.gnome.org/GNOME/librsvg.git librsvg
+          cd librsvg
+          git checkout "$RSVG_TAG"
 
-    - name: Install MXE APT repository
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y software-properties-common lsb-release
-        sudo apt-key adv \
-          --keyserver keyserver.ubuntu.com \
-          --recv-keys 86B72ED9
-        sudo add-apt-repository \
-          "deb [arch=amd64] https://pkg.mxe.cc/repos/apt $(lsb_release -sc) main"
-        sudo apt-get update
-      shell: bash
-      # 添加 MXE 二进制仓库，免去源码编译 MXE 工具链的时间 :contentReference[oaicite:0]{index=0}
+      - name: Setup MXE APT repository
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common lsb-release
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 86B72ED9
+          sudo add-apt-repository "deb [arch=amd64] https://pkg.mxe.cc/repos/apt $(lsb_release -sc) main"
+          sudo apt-get update
 
-    - name: Install cross compiler & static libraries
-      run: |
-        sudo apt-get install -y \
-          mxe-${MXE_TARGET}-cc \
-          mxe-${MXE_TARGET}-glib \
-          mxe-${MXE_TARGET}-libxml2 \
-          mxe-${MXE_TARGET}-cairo \
-          mxe-${MXE_TARGET}-pango \
-          mxe-${MXE_TARGET}-librsvg
-      shell: bash
-      # 从 MXE 仓库安装交叉编译器及其依赖库（静态版） :contentReference[oaicite:1]{index=1}
+      - name: Install MXE cross compiler & static libraries
+        run: |
+          sudo apt-get install -y \
+            mxe-$MXE_TARGET-cc \
+            mxe-$MXE_TARGET-glib \
+            mxe-$MXE_TARGET-libxml2 \
+            mxe-$MXE_TARGET-cairo \
+            mxe-$MXE_TARGET-pango \
+            mxe-$MXE_TARGET-librsvg
 
-    - name: Configure Meson build
-      env:
-        PATH: ${{ env.MXE_PREFIX }}/bin:$PATH
-        PKG_CONFIG_PATH: ${{ env.MXE_PREFIX }}/lib/pkgconfig
-      run: |
-        cd librsvg
-        mkdir -p build && cd build
-        meson setup . \
-          --cross-file ${{ env.MXE_PREFIX }}/share/mxe/toolchain.mxe \
-          --prefix $PWD/install \
-          --default-library=static \
-          -Dbuildtype=release \
-          -Db_lto=true \
-          -Dintrospection=disabled \
-          ..
-      shell: bash
+      - name: Configure and build with Meson
+        run: |
+          # 在 shell 里计算前缀路径
+          MXE_PREFIX=/usr/lib/mxe/usr/$MXE_TARGET
+          export PATH=$MXE_PREFIX/bin:$PATH
+          export PKG_CONFIG_PATH=$MXE_PREFIX/lib/pkgconfig
 
-    - name: Build and install
-      run: |
-        cd librsvg/build
-        ninja
-        ninja install
-      shell: bash
+          cd librsvg
+          mkdir -p build && cd build
 
-    - name: Upload rsvg-convert.exe
-      uses: actions/upload-artifact@v4
-      with:
-        name: rsvg-convert-windows
-        path: librsvg/build/install/bin/rsvg-convert.exe
+          # 静态链接所有依赖，并开启 LTO 优化
+          meson setup . \
+            --cross-file $MXE_PREFIX/share/mxe/toolchain.mxe \
+            --prefix install \
+            --default-library=static \
+            -Dbuildtype=release \
+            -Db_lto=true \
+            -Dintrospection=disabled \
+            ..
+
+          ninja
+          ninja install
+
+      - name: Upload rsvg-convert.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsvg-convert-windows
+          path: librsvg/build/install/bin/rsvg-convert.exe
