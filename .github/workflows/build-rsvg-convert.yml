@@ -1,4 +1,4 @@
-name: Cross-compile rsvg-convert for Windows
+name: Cross-compile rsvg-convert for Windows (no MXE)
 
 on:
   push:
@@ -9,83 +9,66 @@ jobs:
   build-windows:
     runs-on: ubuntu-latest
     env:
-      # 目标 MXE 三方工具链
-      MXE_TARGET: x86_64-w64-mingw32.static
-      # 要编译的 librsvg 版本
-      RSVG_TAG: 2.60.0
+      TRIPLET: x86_64-w64-mingw32
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      RSVG_TAG: 2.60.0   # 指定你要编译的 librsvg tag
 
     steps:
-      - name: Checkout repository
+      - name: Checkout this repo
         uses: actions/checkout@v4
 
-      - name: Clone librsvg source
+      - name: Clone librsvg at tag $RSVG_TAG
         run: |
-          git clone https://gitlab.gnome.org/GNOME/librsvg.git
-          cd librsvg
-          git checkout "${RSVG_TAG}"
-
-      - name: Setup MXE APT repository
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common lsb-release
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 86B72ED9
-          echo "deb [arch=amd64] https://pkg.mxe.cc/repos/apt focal main" | sudo tee /etc/apt/sources.list.d/mxe.list
-          sudo apt-get update
-
-      - name: Install build tools (Meson, Ninja, pkg-config)
-        run: |
-          sudo apt-get install -y meson ninja-build pkg-config
+          git clone --depth 1 \
+            --branch "$RSVG_TAG" \
+            https://gitlab.gnome.org/GNOME/librsvg.git librsvg
         shell: bash
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Install cargo-cbuild
+      - name: Install host tools (mingw-w64, cmake, pkg-config)
         run: |
-          source $HOME/.cargo/env
-          cargo install cargo-c --locked
-        shell: bash
-  
-      - name: Install MXE cross compiler & static libraries
-        run: |
+          sudo apt-get update
           sudo apt-get install -y \
-            mxe-x86-64-w64-mingw32.static-cc \
-            mxe-x86-64-w64-mingw32.static-glib \
-            mxe-x86-64-w64-mingw32.static-libxml2 \
-            mxe-x86-64-w64-mingw32.static-cairo \
-            mxe-x86-64-w64-mingw32.static-pango \
-            mxe-x86-64-w64-mingw32.static-librsvg
+            mingw-w64 cmake git pkg-config python3
         shell: bash
 
-      - name: Configure and build with Meson
+      - name: Bootstrap vcpkg
         run: |
-          # 定义 MXE 目录
-          MXE_ROOT=/usr/lib/mxe/usr
-          MXE_BIN=$MXE_ROOT/bin
-          MXE_PREFIX=$MXE_ROOT/$MXE_TARGET
+          git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+          cd $VCPKG_ROOT
+          ./bootstrap-vcpkg.sh -disableMetrics
+        shell: bash
 
-          # 把 MXE 的工具放到 PATH，并指向正确的 pkgconfig 目录
-          export PATH=$MXE_BIN:$PATH
-          export PKG_CONFIG_PATH=$MXE_PREFIX/lib/pkgconfig
+      - name: Install dependencies via vcpkg
+        run: |
+          cd $VCPKG_ROOT
+          ./vcpkg install \
+            glib:${TRIPLET}-static \
+            libxml2:${TRIPLET}-static \
+            cairo:${TRIPLET}-static \
+            pango:${TRIPLET}-static \
+            librsvg:${TRIPLET}-static
+        shell: bash
+
+      - name: Configure and build librsvg with Meson
+        run: |
+          export CC=${TRIPLET}-gcc
+          export CXX=${TRIPLET}-g++
+          export PKG_CONFIG_PATH=$VCPKG_ROOT/installed/${TRIPLET}-static/lib/pkgconfig
 
           cd librsvg
           mkdir -p build && cd build
 
-          # 生成 Meson cross-file，指定 MXE 提供的交叉编译工具
-          cat > mxe_cross_file.txt << 'EOF'
+          cat > cross.txt << 'EOF'
           [binaries]
-          c = '/usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-gcc'
-          cpp = '/usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-g++'
-          ar = '/usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-ar'
-          strip = '/usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-strip'
-          pkg-config = '/usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-pkg-config'
-
+          c = '${TRIPLET}-gcc'
+          cpp = '${TRIPLET}-g++'
+          ar = '${TRIPLET}-ar'
+          strip = '${TRIPLET}-strip'
+          pkg-config = 'pkg-config'
+          
           [properties]
           needs_exe_wrapper = true
-
+          
           [host_machine]
           system = 'windows'
           cpu_family = 'x86_64'
@@ -93,23 +76,20 @@ jobs:
           endian = 'little'
           EOF
 
-          # 静态链接所有依赖，并开启 LTO 优化
-          PREFIX=$(pwd)/install
-          meson setup \
-            --cross-file mxe_cross_file.txt \
-            --prefix "${PREFIX}" \
+          meson setup crossbuild \
+            --cross-file cross.txt \
+            --prefix "$(pwd)/install" \
             --default-library=static \
             -Dbuildtype=release \
-            -Db_lto=true \
             -Dintrospection=disabled \
             ..
 
-          ninja
-          ninja install
+          ninja -C crossbuild
+          ninja -C crossbuild install
         shell: bash
 
-      - name: Upload rsvg-convert.exe
+      - name: Upload Windows exe
         uses: actions/upload-artifact@v4
         with:
           name: rsvg-convert-windows
-          path: librsvg/build/install/bin/rsvg-convert.exe
+          path: librsvg/build/crossbuild/install/bin/rsvg-convert.exe
