@@ -1,29 +1,36 @@
 name: Build rsvg-convert 2.60.0 (MXE + Rust, static Win64)
 
 on:
-  push:                     # 仅 push 触发；可自行加 branches: [ main ]
+  push:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04   # GitHub 现行 LTS runner
+    runs-on: ubuntu-22.04
 
     steps:
-    # 1) 检出当前仓库 ── 这里只用来保存产物
     - uses: actions/checkout@v4
       with: { fetch-depth: 1 }
 
-    # 2) 配置 MXE APT 源（固定为 focal）并导入 GPG key
-    - name: Add MXE APT repo (focal on jammy host)
+    # ───── ① 添加 MXE 仓库（focal）并导入两把 GPG 密钥 ─────
+    - name: Add MXE APT repo (focal) + import GPG keys
       run: |
         sudo mkdir -p /usr/share/keyrings
-        curl -fsSL https://pkg.mxe.cc/repos/apt/conf/86B72ED9.gpg \
-          | sudo tee /usr/share/keyrings/mxe-archive-keyring.gpg >/dev/null
+
+        # 下载并去装甲，两把钥匙依次追加到同一 keyring
+        for KEY in 86B72ED9 33A3A276; do
+          curl -fsSL "https://pkg.mxe.cc/repos/apt/conf/${KEY}.gpg" \
+          | gpg --dearmor \
+          | sudo tee -a /usr/share/keyrings/mxe-archive-keyring.gpg >/dev/null
+        done
+
+        # focal 仓库在 jammy 主机上使用没问题，因为包是交叉工具链
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/mxe-archive-keyring.gpg] \
              https://pkg.mxe.cc/repos/apt focal main" \
           | sudo tee /etc/apt/sources.list.d/mxe.list
+
         sudo apt-get update
 
-    # 3) 安装交叉工具链 + 静态依赖
+    # ───── ② 安装 MXE 工具链 + 依赖 ─────
     - name: Install MXE toolchain & libs
       run: |
         sudo apt-get install -y \
@@ -39,7 +46,7 @@ jobs:
           mxe-x86-64-w64-mingw32.static-libcroco \
           mxe-x86-64-w64-mingw32.static-zlib
 
-    # 4) 安装 Rust 并添加 Windows-GNU 目标
+    # ───── ③ Rust + Meson + 编译 librsvg 2.60.0（步骤同前） ─────
     - name: Install Rust toolchain
       run: |
         curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
@@ -47,15 +54,12 @@ jobs:
         rustup target add x86_64-pc-windows-gnu
         echo "CARGO_HOME=$HOME/.cargo" >> "$GITHUB_ENV"
 
-    # 5) 安装 Meson / Ninja
     - name: Install Meson & Ninja
       run: sudo apt-get install -y meson ninja-build gettext
 
-    # 6) 获取 librsvg 2.60.0 源码
     - name: Checkout librsvg 2.60.0
       run: git clone --depth 1 --branch 2.60.0 https://gitlab.gnome.org/GNOME/librsvg.git
 
-    # 7) 生成 Meson cross-file
     - name: Create Meson cross file
       working-directory: librsvg
       run: |
@@ -80,7 +84,6 @@ jobs:
         default_library = 'static'
         EOF
 
-    # 8) 配置 & 构建
     - name: Meson configure
       working-directory: librsvg
       env:
@@ -99,7 +102,6 @@ jobs:
       working-directory: librsvg
       run: ninja -C build rsvg-convert
 
-    # 9) Strip & 检查
     - name: Strip binary
       working-directory: librsvg
       run: |
@@ -107,7 +109,6 @@ jobs:
         file build/rsvg-convert.exe
         du -h build/rsvg-convert.exe
 
-    # 10) 上传产物
     - uses: actions/upload-artifact@v4
       with:
         name: rsvg-convert-2.60.0-win64-static
