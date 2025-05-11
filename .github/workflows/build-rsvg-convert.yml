@@ -137,8 +137,13 @@ jobs:
     - name: Patch glib meson.build (_WIN32_WINNT)
       working-directory: librsvg
       run: |
-        sed -i 's/^\(\s*\)_WIN32_WINNT.*/\1_WIN32_WINNT = "0x0A00"/' \
-          subprojects/glib-2.76.5/meson.build
+        # 保证 glib-2.76.5 已被 download；如果版本不同请同步修改路径
+        GLIB_MB=subprojects/glib-2.76.5/meson.build
+
+        # 把 config.set(...) 那行整体替换为固定值 0x0A00 (Windows 10)
+        sed -i \
+          -e 's/config\.set([^)]*cc.get_define([^)]*)[^)]*)/config.set('"'"'_WIN32_WINNT'"'"', "0x0A00")/' \
+          "$GLIB_MB"
 
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
