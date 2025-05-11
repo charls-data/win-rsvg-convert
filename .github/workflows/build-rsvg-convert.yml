@@ -1,78 +1,99 @@
-name: Build rsvg-convert on Windows (MSYS2)
+name: Build rsvg-convert 2.60.0 (MXE + Rust, static Win64)
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  push:               # 任何 push 均触发；如需限定分支，可加 branches:
+    # branches: [ main ]
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    env:
-      RSVG_TAG: 2.60.0   # 要编译的 librsvg 版本
+  build:
+    runs-on: ubuntu-22.04
+
+    container:
+      image: mxe/mxe:latest     # 内含 x86_64-w64-mingw32.static 交叉链
+      options: --user 0
 
     steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v4
+    # ─────────── 基础准备 ───────────
+    - uses: actions/checkout@v4
+      with: { fetch-depth: 1 }
 
-      - name: Clone librsvg source
-        shell: pwsh
-        run: |
-          git clone --depth 1 --branch $env:RSVG_TAG `
-            https://gitlab.gnome.org/GNOME/librsvg.git librsvg
+    - name: Install Rust (with Windows-GNU target)
+      run: |
+        curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+        source "$HOME/.cargo/env"
+        rustup target add x86_64-pc-windows-gnu
+        rustc -V && cargo -V
+        echo "CARGO_HOME=$HOME/.cargo" >> "$GITHUB_ENV"
 
-      - name: Setup MSYS2 and install dependencies
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          msystem: MINGW64
-          install: >-
-            git
-            p7zip
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-meson
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-rust
-            mingw-w64-x86_64-cargo-c
-            mingw-w64-x86_64-pkgconf
-            mingw-w64-x86_64-glib2
-            mingw-w64-x86_64-gcc-libs
-            mingw-w64-x86_64-gi-docgen
-            mingw-w64-x86_64-gobject-introspection
-            mingw-w64-x86_64-python-docutils
-            mingw-w64-x86_64-vala
+    - name: Install build helpers
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive \
+          apt-get install -y meson ninja-build gettext
 
-      - name: Build static rsvg-convert
-        shell: msys2 {0}
-        run: |
-          cd librsvg
-          mkdir build-static && cd build-static
+    # ─────────── 获取 librsvg 2.60.0 ───────────
+    - name: Clone librsvg-2.60.0
+      run: |
+        git clone --depth 1 --branch 2.60.0 https://gitlab.gnome.org/GNOME/librsvg.git
 
-          # 使用绝对路径作为 prefix，并使用静态库
-          meson setup build \
-            --wrap-mode=nofallback \
-            --prefix $(pwd)/install \
-            --default-library static \
-            --buildtype release \
-            -Db_lto=false \
-            -Dintrospection=disabled \
-            -Dpixbuf-loader=disabled \
-            -Dtests=false \
-            -Dc_args="-static" \
-            -Dcpp_args="-static" \
-            -Dc_link_args="-static -static-libgcc -static-libstdc++" \
-            -Dcpp_link_args="-static -static-libgcc -static-libstdc++" \
-            ..
+    # ─────────── 生成 cross file ───────────
+    - name: Generate Meson cross file
+      working-directory: librsvg
+      run: |
+        cat > mxe-cross.txt <<'EOF'
+        [binaries]
+        c         = 'x86_64-w64-mingw32.static-gcc'
+        cpp       = 'x86_64-w64-mingw32.static-g++'
+        ar        = 'x86_64-w64-mingw32.static-ar'
+        windres   = 'x86_64-w64-mingw32.static-windres'
+        pkgconfig = 'x86_64-w64-mingw32.static-pkg-config'
+        strip     = 'x86_64-w64-mingw32.static-strip'
+        rust      = 'rustc'
+        
+        [properties]
+        needs_exe_wrapper = true
+        
+        [built-in options]
+        c_args        = ['-O2']
+        cpp_args      = ['-O2']
+        c_link_args   = ['-static']
+        cpp_link_args = ['-static']
+        default_library = 'static'
+        EOF
 
-          ninja -C build
-          ninja -C build install
+    # ─────────── 配置 & 编译 ───────────
+    - name: Configure with Meson
+      working-directory: librsvg
+      env:
+        CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32.static-gcc
+        PKG_CONFIG_ALLOW_CROSS: "1"
+        RUSTFLAGS: "-C target-feature=+crt-static -C linker=x86_64-w64-mingw32.static-gcc -C panic=abort"
+      run: |
+        meson setup build \
+          --cross-file mxe-cross.txt \
+          -Ddefault_library=static \
+          -Dintrospection=disabled \
+          -Dtests=false \
+          -Db_lto=true
 
-          # 测试可执行文件
-          cd install/bin
-          ./rsvg-convert --version
+    - name: Build rsvg-convert
+      working-directory: librsvg
+      run: ninja -C build rsvg-convert
 
-      - name: Upload static rsvg-convert.exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsvg-convert-windows-static-${{ env.RSVG_TAG }}
-          path: librsvg/build-static/install/bin/rsvg-convert.exe
+    # ─────────── Strip & 检查 ───────────
+    - name: Strip and inspect binary
+      working-directory: librsvg
+      run: |
+        x86_64-w64-mingw32.static-strip build/rsvg-convert.exe
+        file build/rsvg-convert.exe
+        du -h build/rsvg-convert.exe
+
+    # ─────────── 上传产物 ───────────
+    - uses: actions/upload-artifact@v4
+      with:
+        name: rsvg-convert-2.60.0-win64-static
+        path: librsvg/build/rsvg-convert.exe
