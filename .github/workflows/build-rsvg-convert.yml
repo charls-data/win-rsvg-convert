@@ -117,15 +117,15 @@ jobs:
         mkdir -p subprojects
         cat > subprojects/glib.wrap <<'EOF'
         [wrap-git]
-        directory = glib-2.80.0
+        directory = glib-2.76.5
         url = https://gitlab.gnome.org/GNOME/glib.git
-        revision = 2.80.0
+        revision = 2.76.5
         EOF
         cat > subprojects/pango.wrap <<'EOF'
         [wrap-git]
-        directory = pango-1.52.0
+        directory = pango-1.50.14
         url = https://gitlab.gnome.org/GNOME/pango.git
-        revision = 1.52.0
+        revision = 1.50.14
         EOF
 
     # 6️⃣  生成 Meson cross-file
@@ -146,8 +146,8 @@ jobs:
         needs_exe_wrapper = true
         
         [built-in options]
-        c_args  = ['-O2', '-D_WIN32_WINNT=0x0A00']
-        cpp_args = ['-O2', '-D_WIN32_WINNT=0x0A00']
+        c_args  = ['-O2']
+        cpp_args = ['-O2']
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
@@ -175,7 +175,7 @@ jobs:
           -Dglib:introspection=disabled \
           -Dglib:tests=false \
           -Dpango:introspection=disabled \
-          -Dpango:tests=false -Dglib:winver=0x0A00
+          -Dpango:tests=false
     - name: Build rsvg-convert.exe
       working-directory: librsvg
       run: ninja -C build rsvg-convert
