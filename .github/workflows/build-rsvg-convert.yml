@@ -64,15 +64,16 @@ jobs:
         source "$HOME/.cargo/env"
         rustup target add x86_64-pc-windows-gnu
 
-        # 2️⃣ 下载并解包 cargo-c 预编译版
-        CARGO_C_VERSION=0.10.12          # 如需升级改这一行
+        # ② 下载 cargo-c 官方 Linux x86-64 预编译包
+        CARGO_C_VER="0.10.12"
+        ASSET="cargo-c-${CARGO_C_VER}-x86_64-unknown-linux-gnu.tar.gz"
+        URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/${ASSET}"
+
         CARGO_BIN="$HOME/.cargo/bin"
         mkdir -p "$CARGO_BIN"
-
-        curl -L \
-          "https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VERSION}/cargo-c-linux-x86_64.tar.gz" \
+        curl -L "$URL" \
           | tar -xz --strip-components=1 -C "$CARGO_BIN" \
-              cargo-c/cargo-c cargo-c/cargo-cbuild cargo-c/cargo-cinstall
+            cargo-c/cargo-c cargo-c/cargo-cbuild cargo-c/cargo-cinstall
 
         # 3️⃣ 把 ~/.cargo/bin 加入 PATH（供后续 Meson 调用）
         echo "$CARGO_BIN" >> "$GITHUB_PATH"
