@@ -71,12 +71,12 @@ jobs:
 
         curl -fL "$URL" -o /tmp/${ASSET}
 
+        # ③ 解包到临时目录，再复制可执行文件
+        TMPDIR=$(mktemp -d)
+        tar -xzf /tmp/${ASSET} -C "$TMPDIR"
         CARGO_BIN="$HOME/.cargo/bin"
         mkdir -p "$CARGO_BIN"
-
-        # 解出 4 个可执行文件，并去掉头部目录
-        tar -xzf /tmp/${ASSET} -C "$CARGO_BIN" --strip-components=1 \
-            */cargo-cbuild */cargo-cinstall */cargo-capi */cargo-ctest
+        find "$TMPDIR" -type f -perm -u+x -name 'cargo-c*' -exec cp {} "$CARGO_BIN" \;
 
         # 3️⃣ 把 ~/.cargo/bin 加入 PATH（供后续 Meson 调用）
         echo "$CARGO_BIN" >> "$GITHUB_PATH"
