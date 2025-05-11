@@ -1,25 +1,25 @@
 name: Build rsvg-convert 2.60.0 (MXE + Rust, static Win64)
 
 on:
-  push:                      # 仅 push 触发；如需限定分支可加  branches: [ main ]
+  push:                     # 仅 push 触发；可自行加 branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04    # ← 关键：用 focal，对应 MXE 仓库
+    runs-on: ubuntu-22.04   # GitHub 现行 LTS runner
 
     steps:
-    # 1) 拉取当前仓库（这里只用来保存 artifact）
+    # 1) 检出当前仓库 ── 这里只用来保存产物
     - uses: actions/checkout@v4
       with: { fetch-depth: 1 }
 
-    # 2) 配置 MXE 官方 APT 源（focal）并导入公钥
-    - name: Add MXE APT repo (focal)
+    # 2) 配置 MXE APT 源（固定为 focal）并导入 GPG key
+    - name: Add MXE APT repo (focal on jammy host)
       run: |
         sudo mkdir -p /usr/share/keyrings
         curl -fsSL https://pkg.mxe.cc/repos/apt/conf/86B72ED9.gpg \
           | sudo tee /usr/share/keyrings/mxe-archive-keyring.gpg >/dev/null
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/mxe-archive-keyring.gpg] \
-          https://pkg.mxe.cc/repos/apt focal main" \
+             https://pkg.mxe.cc/repos/apt focal main" \
           | sudo tee /etc/apt/sources.list.d/mxe.list
         sudo apt-get update
 
@@ -107,7 +107,7 @@ jobs:
         file build/rsvg-convert.exe
         du -h build/rsvg-convert.exe
 
-    # 10) 发布 artifact
+    # 10) 上传产物
     - uses: actions/upload-artifact@v4
       with:
         name: rsvg-convert-2.60.0-win64-static
