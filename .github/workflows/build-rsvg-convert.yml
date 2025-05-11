@@ -161,7 +161,7 @@ jobs:
           -Dglib:libmount=disabled -Dglib:selinux=disabled \
           -Dglib:introspection=disabled -Dglib:tests=false \
           -Dpango:introspection=disabled -Dpango:tests=false \
-          --wrap-mode=forcefallback
+          --wrap-mode=forcefallback -Dcairo:gobject=enabled
     - name: Build rsvg-convert.exe
       working-directory: librsvg
       run: ninja -C build rsvg-convert
