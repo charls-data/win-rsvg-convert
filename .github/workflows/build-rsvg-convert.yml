@@ -154,13 +154,13 @@ jobs:
       run: |
         meson setup build \
           --cross-file mxe-cross.txt \
-          --wrap-mode=forcefallback \             # ← 强制全走子项目
+          --wrap-mode=forcefallback \
           -Ddefault_library=static \
           -Dintrospection=disabled \
           -Dtests=false \
           -Db_lto=true \
-          -Dcairo:glib=enabled \                  # ← 必须先启用 glib 封装
-          -Dcairo:gobject=enabled \               # ← 才能生成 cairo-gobject
+          -Dcairo:glib=enabled \
+          -Dcairo:gobject=enabled \
           -Dglib:libmount=disabled \
           -Dglib:selinux=disabled \
           -Dglib:introspection=disabled \
