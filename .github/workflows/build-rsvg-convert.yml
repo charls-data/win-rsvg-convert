@@ -50,6 +50,7 @@ jobs:
 
           # 使用绝对路径作为 prefix，并使用静态库
           meson setup build \
+            --wrap-mode=nofallback
             --prefix $(pwd)/install \
             --default-library static \
             --buildtype release \
