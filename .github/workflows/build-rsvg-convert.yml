@@ -1,29 +1,29 @@
 name: Build rsvg-convert 2.60.0 (MXE + Rust, static Win64)
 
 on:
-  push:          # 仅 push 触发。若要限定分支可加  branches: [ main ]
+  push:                      # 仅 push 触发；如需限定分支可加  branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04    # ← 关键：用 focal，对应 MXE 仓库
 
     steps:
-    # 1) 取代码（任意仓库即可；此处只用来保存产物）
+    # 1) 拉取当前仓库（这里只用来保存 artifact）
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
+      with: { fetch-depth: 1 }
 
-    # 2) 安装 MXE APT 仓库（官方提供）
-    - name: Add MXE APT repo
+    # 2) 配置 MXE 官方 APT 源（focal）并导入公钥
+    - name: Add MXE APT repo (focal)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y software-properties-common lsb-release
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 86B72ED9
-        echo "deb [arch=amd64] https://pkg.mxe.cc/repos/apt $(lsb_release -sc) main" | \
-          sudo tee /etc/apt/sources.list.d/mxe.list
+        sudo mkdir -p /usr/share/keyrings
+        curl -fsSL https://pkg.mxe.cc/repos/apt/conf/86B72ED9.gpg \
+          | sudo tee /usr/share/keyrings/mxe-archive-keyring.gpg >/dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/mxe-archive-keyring.gpg] \
+          https://pkg.mxe.cc/repos/apt focal main" \
+          | sudo tee /etc/apt/sources.list.d/mxe.list
         sudo apt-get update
 
-    # 3) 安装交叉编译链 + 常用静态依赖
+    # 3) 安装交叉工具链 + 静态依赖
     - name: Install MXE toolchain & libs
       run: |
         sudo apt-get install -y \
@@ -43,9 +43,9 @@ jobs:
     - name: Install Rust toolchain
       run: |
         curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
-        source $HOME/.cargo/env
+        source "$HOME/.cargo/env"
         rustup target add x86_64-pc-windows-gnu
-        echo "CARGO_HOME=$HOME/.cargo" >> $GITHUB_ENV
+        echo "CARGO_HOME=$HOME/.cargo" >> "$GITHUB_ENV"
 
     # 5) 安装 Meson / Ninja
     - name: Install Meson & Ninja
@@ -80,7 +80,7 @@ jobs:
         default_library = 'static'
         EOF
 
-    # 8) 配置 & 编译
+    # 8) 配置 & 构建
     - name: Meson configure
       working-directory: librsvg
       env:
@@ -95,11 +95,11 @@ jobs:
           -Dtests=false \
           -Db_lto=true
 
-    - name: Build rsvg-convert.exe
+    - name: Build rsvg-convert
       working-directory: librsvg
       run: ninja -C build rsvg-convert
 
-    # 9) Strip & 查看大小
+    # 9) Strip & 检查
     - name: Strip binary
       working-directory: librsvg
       run: |
@@ -107,7 +107,7 @@ jobs:
         file build/rsvg-convert.exe
         du -h build/rsvg-convert.exe
 
-    # 10) 发布产物
+    # 10) 发布 artifact
     - uses: actions/upload-artifact@v4
       with:
         name: rsvg-convert-2.60.0-win64-static
