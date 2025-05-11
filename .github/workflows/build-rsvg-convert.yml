@@ -61,9 +61,15 @@ jobs:
         rustup target add x86_64-pc-windows-gnu
         echo "CARGO_HOME=$HOME/.cargo" >> "$GITHUB_ENV"
 
-    # 4️⃣  Meson & Ninja
-    - name: Install Meson & Ninja
-      run: sudo apt-get install -y meson ninja-build gettext
+    # 4️⃣  安装 Ninja（APT） + 最新 Meson（pip ≥ 1.3.0）
+    - name: Install Ninja & Meson >=1.3
+      run: |
+        sudo apt-get install -y ninja-build python3-pip python3-setuptools python3-wheel
+        # 安装 / 升级 Meson 到最新稳定版（目前 1.4.x）
+        python3 -m pip install --upgrade --no-cache-dir 'meson>=1.3'
+        # 把 pip 安装路径加入 PATH，确保后续调用到新版本
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        meson --version    # sanity-check：应 ≥ 1.3.0
 
     # 5️⃣  获取 librsvg-2.60.0 源码
     - name: Clone librsvg 2.60.0
