@@ -128,10 +128,16 @@ jobs:
         revision = 1.50.14
         EOF
 
+    - name: Fetch subprojects source
+      working-directory: librsvg
+      run: |
+        meson subprojects download glib pango cairo
+
+    # 5️⃣⁹  给 glib 的 meson.build 写入 _WIN32_WINNT 宏
     - name: Patch glib meson.build (_WIN32_WINNT)
       working-directory: librsvg
       run: |
-        sed -i 's/^\(\s*\)_WIN32_WINNT.*$/\1_WIN32_WINNT = "0x0A00"/' \
+        sed -i 's/^\(\s*\)_WIN32_WINNT.*/\1_WIN32_WINNT = "0x0A00"/' \
           subprojects/glib-2.76.5/meson.build
 
     # 6️⃣  生成 Meson cross-file
