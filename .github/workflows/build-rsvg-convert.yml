@@ -128,22 +128,33 @@ jobs:
         revision = 1.50.14
         EOF
 
-    - name: Fetch subprojects source
+    # ❺¾  为 glib 添加一个 wrap-patch，强行给 _WIN32_WINNT 设默认值
+    - name: Add patch to glib.wrap (_WIN32_WINNT)
       working-directory: librsvg
       run: |
-        meson subprojects download glib pango cairo
+        mkdir -p subprojects
 
-    # 5️⃣⁹  给 glib 的 meson.build 写入 _WIN32_WINNT 宏
-    - name: Patch glib meson.build (_WIN32_WINNT)
-      working-directory: librsvg
-      run: |
-        # 保证 glib-2.76.5 已被 download；如果版本不同请同步修改路径
-        GLIB_MB=subprojects/glib-2.76.5/meson.build
+        # ① 重写 glib.wrap：指定 2.76.5 且声明补丁
+        cat > subprojects/glib.wrap <<'EOF'
+        [wrap-git]
+        directory = glib-2.76.5
+        url = https://gitlab.gnome.org/GNOME/glib.git
+        revision = 2.76.5
+        
+        [patches]
+        _0001_win32_nt.patch
+        EOF
 
-        # 把 config.set(...) 那行整体替换为固定值 0x0A00 (Windows 10)
-        sed -i \
-          -e 's/config\.set([^)]*cc.get_define([^)]*)[^)]*)/config.set('"'"'_WIN32_WINNT'"'"', "0x0A00")/' \
-          "$GLIB_MB"
+        # ② 写入补丁文件：把 cc.get_define(...) 换成固定 0x0A00
+        cat > subprojects/_0001_win32_nt.patch <<'PATCH'
+        diff --git a/meson.build b/meson.build
+        index 1f5dba5..abcd123 100644
+        --- a/meson.build
+        +++ b/meson.build
+        @@
+        -_WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
+        +_WIN32_WINNT = '0x0A00'  # force Windows 10; change to 0x0601 for Win7
+        PATCH
 
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
