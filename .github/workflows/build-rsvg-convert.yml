@@ -120,28 +120,15 @@ jobs:
         directory = glib-2.76.5
         url = https://gitlab.gnome.org/GNOME/glib.git
         revision = 2.76.5
+
+        patch_filename = _0001_win32_nt.patch
+        patch_strip = 1
         EOF
         cat > subprojects/pango.wrap <<'EOF'
         [wrap-git]
         directory = pango-1.50.14
         url = https://gitlab.gnome.org/GNOME/pango.git
         revision = 1.50.14
-        EOF
-
-    # 1) 生成 glib.wrap ，声明本地补丁
-    - name: Add glib.wrap with patch_filename
-      working-directory: librsvg
-      run: |
-        mkdir -p subprojects
-        cat > subprojects/glib.wrap <<'EOF'
-        [wrap-git]
-        directory = glib-2.76.5
-        url = https://gitlab.gnome.org/GNOME/glib.git
-        revision = 2.76.5
-        
-        # 本地补丁，Meson 会在同目录下找这个文件
-        patch_filename = _0001_win32_nt.patch
-        patch_strip = 1
         EOF
 
     # 2) 将补丁文件放到同一目录：subprojects/
@@ -194,7 +181,7 @@ jobs:
       run: |
         meson setup build \
           --cross-file mxe-cross.txt \
-          --wrap-mode=nodownload \
+          --wrap-mode=forcefallback \
           -Ddefault_library=static \
           -Dintrospection=disabled \
           -Dtests=false \
