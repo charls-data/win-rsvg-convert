@@ -53,6 +53,9 @@ jobs:
           mxe-x86-64-w64-mingw32.static-libcroco \
           mxe-x86-64-w64-mingw32.static-zlib
 
+        # ➜ 把 MXE bin 目录加入 PATH，供 Meson 找到交叉编译器
+        echo "/usr/lib/mxe/usr/bin" >> $GITHUB_PATH
+
     # 3️⃣  安装 Rust 并启用 Windows-GNU 目标
     - name: Install Rust toolchain
       run: |
