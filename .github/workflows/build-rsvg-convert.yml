@@ -141,19 +141,25 @@ jobs:
         url = https://gitlab.gnome.org/GNOME/glib.git
         revision = 2.76.5
         
-        [patches]
-        _0001_win32_nt.patch
+        # Tell Meson to apply our patch on every setup
+        patch_url = file://./_0001_win32_nt.patch
+        patch_filename = _0001_win32_nt.patch
+        patch_strip = 1
         EOF
 
-        # ② 写入补丁文件：把 cc.get_define(...) 换成固定 0x0A00
+    # 5️⃣¾  Write the actual patch file next to it
+    - name: Create _0001_win32_nt.patch
+      working-directory: librsvg
+      run: |
         cat > subprojects/_0001_win32_nt.patch <<'PATCH'
-        diff --git a/meson.build b/meson.build
-        index 1f5dba5..abcd123 100644
         --- a/meson.build
         +++ b/meson.build
-        @@
-        -_WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
-        +_WIN32_WINNT = '0x0A00'  # force Windows 10; change to 0x0601 for Win7
+        @@ -1793,7 +1793,7 @@
+         # If we're cross‐compiling on MinGW we won't have
+         # a pre‐defined _WIN32_WINNT, so we have to assume
+         # something reasonably modern
+        -  _WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
+        +  _WIN32_WINNT = '0x0A00'  # force Windows 10; change to '0x0601' for Win7
         PATCH
 
     # 6️⃣  生成 Meson cross-file
