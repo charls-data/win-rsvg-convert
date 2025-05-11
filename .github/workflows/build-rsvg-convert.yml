@@ -154,14 +154,19 @@ jobs:
       run: |
         meson setup build \
           --cross-file mxe-cross.txt \
+          --wrap-mode=forcefallback \             # ← 强制全走子项目
           -Ddefault_library=static \
           -Dintrospection=disabled \
           -Dtests=false \
           -Db_lto=true \
-          -Dglib:libmount=disabled -Dglib:selinux=disabled \
-          -Dglib:introspection=disabled -Dglib:tests=false \
-          -Dpango:introspection=disabled -Dpango:tests=false \
-          --wrap-mode=forcefallback -Dcairo:gobject=enabled
+          -Dcairo:glib=enabled \                  # ← 必须先启用 glib 封装
+          -Dcairo:gobject=enabled \               # ← 才能生成 cairo-gobject
+          -Dglib:libmount=disabled \
+          -Dglib:selinux=disabled \
+          -Dglib:introspection=disabled \
+          -Dglib:tests=false \
+          -Dpango:introspection=disabled \
+          -Dpango:tests=false
     - name: Build rsvg-convert.exe
       working-directory: librsvg
       run: ninja -C build rsvg-convert
