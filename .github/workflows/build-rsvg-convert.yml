@@ -66,7 +66,7 @@ jobs:
 
         # ② 下载 cargo-c 官方 Linux x86-64 预编译包
         CARGO_C_VER="0.10.12"
-        ASSET="cargo-c-${CARGO_C_VER}-x86_64-unknown-linux-gnu.tar.gz"
+        ASSET="cargo-c-x86_64-unknown-linux-musl.tar.gz"
         URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/${ASSET}"
 
         CARGO_BIN="$HOME/.cargo/bin"
