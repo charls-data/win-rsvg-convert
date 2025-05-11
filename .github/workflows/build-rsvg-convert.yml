@@ -57,24 +57,29 @@ jobs:
         echo "/usr/lib/mxe/usr/bin" >> $GITHUB_PATH
 
     # 3️⃣  安装 Rust 并启用 Windows-GNU 目标
-    - name: Install Rust toolchain + cargo-c
+    - name: Install Rust toolchain + prebuilt cargo-c
       run: |
-        # 装 stable Rust（默认在 ~/.cargo）
+        # 1️⃣ 安装 stable Rust（默认路径 ~/.cargo）
         curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
         source "$HOME/.cargo/env"
-
-        # Windows-GNU 目标（静态链接）  
         rustup target add x86_64-pc-windows-gnu
 
-        # ➜ 关键新增：安装 cargo-c（提供 cargo-cbuild）
-        cargo install cargo-c --locked
+        # 2️⃣ 下载并解包 cargo-c 预编译版
+        CARGO_C_VERSION=0.10.12          # 如需升级改这一行
+        CARGO_BIN="$HOME/.cargo/bin"
+        mkdir -p "$CARGO_BIN"
 
-        # 把 ~/.cargo/bin 写进 PATH（前面已经写过可省略）
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        curl -L \
+          "https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VERSION}/cargo-c-linux-x86_64.tar.gz" \
+          | tar -xz --strip-components=1 -C "$CARGO_BIN" \
+              cargo-c/cargo-c cargo-c/cargo-cbuild cargo-c/cargo-cinstall
 
-        # 版本确认
+        # 3️⃣ 把 ~/.cargo/bin 加入 PATH（供后续 Meson 调用）
+        echo "$CARGO_BIN" >> "$GITHUB_PATH"
+
+        # 4️⃣ 版本确认
         cargo --version
-        cargo cbuild --version
+        cargo-cbuild --version
 
     # 4️⃣  安装 Ninja（APT） + 最新 Meson（pip ≥ 1.3.0）
     - name: Install Ninja & Meson >=1.3
@@ -137,8 +142,8 @@ jobs:
         needs_exe_wrapper = true
         
         [built-in options]
-        c_args        = ['-O2']
-        cpp_args      = ['-O2']
+        c_args  = ['-O2', '-D_WIN32_WINNT=0x0A00']
+        cpp_args = ['-O2', '-D_WIN32_WINNT=0x0A00']
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
