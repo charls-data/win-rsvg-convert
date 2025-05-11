@@ -60,7 +60,7 @@ jobs:
             -Dtests=false \
             -Dc_args="-static" \
             -Dcpp_args="-static" \
-            -Dc_link_args="-static -static-libgcc" \
+            -Dc_link_args="-static -static-libgcc -static-libstdc++" \
             -Dcpp_link_args="-static -static-libgcc -static-libstdc++" \
             ..
 
