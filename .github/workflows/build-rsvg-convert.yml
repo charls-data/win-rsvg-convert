@@ -128,39 +128,20 @@ jobs:
         revision = 1.50.14
         EOF
 
-    # ❺¾  为 glib 添加一个 wrap-patch，强行给 _WIN32_WINNT 设默认值
-    - name: Add patch to glib.wrap (_WIN32_WINNT)
+    # ── Download all fallback subprojects locally ─────────────────────
+    - name: Pre-fetch all wrap-git subprojects
       working-directory: librsvg
       run: |
-        mkdir -p subprojects
+        # This will fetch glib, pango, cairo (and cairo’s pixman)
+        meson subprojects download glib pango cairo
 
-        # ① 重写 glib.wrap：指定 2.76.5 且声明补丁
-        cat > subprojects/glib.wrap <<'EOF'
-        [wrap-git]
-        directory = glib-2.76.5
-        url = https://gitlab.gnome.org/GNOME/glib.git
-        revision = 2.76.5
-        
-        # Tell Meson to apply our patch on every setup
-        patch_filename = _0001_win32_nt.patch
-        patch_strip = 1
-        EOF
-
-    # 5️⃣¾  Write the actual patch file next to it
-    - name: Create _0001_win32_nt.patch
+    # ── Patch glib in place so it never hits cc.get_define() ─────────
+    - name: Patch glib subproject to hardcode _WIN32_WINNT
       working-directory: librsvg
       run: |
-        mkdir -p subprojects/packagefiles
-        cat > subprojects/packagefiles/_0001_win32_nt.patch <<'PATCH'
-        --- a/meson.build
-        +++ b/meson.build
-        @@ -1793,7 +1793,7 @@
-         # If we're cross‐compiling on MinGW we won't have
-         # a pre‐defined _WIN32_WINNT, so we have to assume
-         # something reasonably modern
-        -  _WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
-        +  _WIN32_WINNT = '0x0A00'  # force Windows 10; change to '0x0601' for Win7
-        PATCH
+        sed -i \
+          's/^  _WIN32_WINNT = cc.get_define.*$/  _WIN32_WINNT = "0x0A00"/' \
+          subprojects/glib-2.76.5/meson.build
 
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
@@ -197,7 +178,7 @@ jobs:
       run: |
         meson setup build \
           --cross-file mxe-cross.txt \
-          --wrap-mode=forcefallback \
+          --wrap-mode=nodownload \
           -Ddefault_library=static \
           -Dintrospection=disabled \
           -Dtests=false \
