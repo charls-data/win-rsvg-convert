@@ -90,6 +90,18 @@ jobs:
     - name: Clone librsvg 2.60.0
       run: git clone --depth 1 --branch 2.60.0 https://gitlab.gnome.org/GNOME/librsvg.git
 
+    # 5️⃣½  ← 这里是新增的 wrap 步骤
+    - name: Add cairo.wrap (1.18.0) for subprojects
+      working-directory: librsvg
+      run: |
+        mkdir -p subprojects
+        cat > subprojects/cairo.wrap <<'EOF'
+        [wrap-git]
+        directory = cairo-1.18.0
+        url = https://gitlab.freedesktop.org/cairo/cairo.git
+        revision = 1.18.0
+        EOF
+
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
       working-directory: librsvg
