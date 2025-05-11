@@ -142,7 +142,6 @@ jobs:
         revision = 2.76.5
         
         # Tell Meson to apply our patch on every setup
-        patch_url = file://./_0001_win32_nt.patch
         patch_filename = _0001_win32_nt.patch
         patch_strip = 1
         EOF
