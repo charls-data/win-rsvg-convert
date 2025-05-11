@@ -150,7 +150,8 @@ jobs:
     - name: Create _0001_win32_nt.patch
       working-directory: librsvg
       run: |
-        cat > subprojects/_0001_win32_nt.patch <<'PATCH'
+        mkdir -p subprojects/packagefiles
+        cat > subprojects/packagefiles/_0001_win32_nt.patch <<'PATCH'
         --- a/meson.build
         +++ b/meson.build
         @@ -1793,7 +1793,7 @@
