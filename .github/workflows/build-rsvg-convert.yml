@@ -18,16 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Ninja & patch via Chocolatey
+      - name: Install Ninja via Chocolatey
         shell: cmd
         run: |
           choco install -y ninja
-          choco install -y patchutils
 
       - name: Install Meson via pip
         run: pip3 install --upgrade --user "meson~=1.2"
 
-      - name: Build all GNOME deps & librsvg
+      - name: Build GNOME deps & librsvg
         shell: cmd
         run: |
           :: ——— 定位并加载 MSVC x64 环境 ———
@@ -57,16 +56,18 @@ jobs:
           curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config-%PKG_CONFIG_VER%.tar.gz
           curl -L https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz -o freetype-%FREETYPE2_VER%.tar.xz
           curl -L https://download.gnome.org/sources/libxml2/2.12/libxml2-%LIBXML2_VER%.tar.xz -o libxml2-%LIBXML2_VER%.tar.xz
-          curl -L https://wrapdb.mesonbuild.com/v2/libxml2_%LIBXML2_VER%-1/get_patch -o libxml2_%LIBXML2_VER%-1_patch.zip
+          curl -L https://downloads.sourceforge.net/gnuwin32/patch-2.5.9-gnuwin32-bin.zip -o patch.zip
 
           tar -xf pkg-config-%PKG_CONFIG_VER%.tar.gz
           tar -xf freetype-%FREETYPE2_VER%.tar.xz
           tar -xf libxml2-%LIBXML2_VER%.tar.xz
-          powershell -Command "Expand-Archive libxml2_%LIBXML2_VER%-1_patch.zip -DestinationPath ."
-          del /f /q pkg-config-%PKG_CONFIG_VER%.tar.gz freetype-%FREETYPE2_VER%.tar.xz libxml2-%LIBXML2_VER%.tar.xz libxml2_%LIBXML2_VER%-1_patch.zip
+          powershell -Command "Expand-Archive patch.zip -DestinationPath patchbin"
+          del /f /q pkg-config-%PKG_CONFIG_VER%.tar.gz freetype-%FREETYPE2_VER%.tar.xz libxml2-%LIBXML2_VER%.tar.xz patch.zip
 
           :: ——— 构建 pkg-config ———
           cd pkg-config-%PKG_CONFIG_VER%
+          :: 用手动下载的 patch 而非 Chocolatey
+          set PATH=%CD%\..\patchbin\bin;%PATH%
           patch -p1 < "%GITHUB_WORKSPACE%\pkgconfig.nmake.patch"
           set PATH=%INST%\bin;%PATH%
           nmake /f Makefile.vc CFG=release
