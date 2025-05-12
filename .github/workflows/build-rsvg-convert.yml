@@ -165,8 +165,8 @@ jobs:
         needs_exe_wrapper = true
         
         [built-in options]
-        c_args        = ['-O2']
-        cpp_args      = ['-O2', '-std=c++11']
+        c_args        = ['-O2', '-w']
+        cpp_args      = ['-O2', '-std=c++11', '-w']
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
@@ -217,6 +217,10 @@ jobs:
         subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
 
         sed -i '1603c\
+        (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
+        subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
+
+        sed -i '1636c\
         (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
         subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
 
