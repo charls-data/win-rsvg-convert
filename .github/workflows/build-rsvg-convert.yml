@@ -40,7 +40,7 @@ jobs:
 
       - name: Ensure MSYS2 patch utility
         # use the pre-installed MSYS2 bash
-        shell: msys2 {0}
+        shell: 'C:\\msys64\\usr\\bin\\bash.exe -lc'
         run: |
           if ! command -v patch >/dev/null 2>&1; then
             pacman -Sy --noconfirm patch
