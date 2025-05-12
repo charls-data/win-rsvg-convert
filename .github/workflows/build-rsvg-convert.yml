@@ -135,12 +135,14 @@ jobs:
         cat > subprojects/packagefiles/_0001_win32_nt.patch <<'PATCH'
         --- meson.build
         +++ meson.build
-        @@ -1793,7 +1793,7 @@
-         # If we're cross-compiling on MinGW we won't have
-         # a pre-defined _WIN32_WINNT, so we have to assume
-         # something reasonably modern
-        -  _WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
-        +  _WIN32_WINNT = '0x0A00'  # force Windows 10; change to '0x0601' for Win7
+         elif has_winsock2
+        -  poll_includes = '''
+        -      #define _WIN32_WINNT @0@
+        -      #include <winsock2.h>'''.format(glib_conf.get('_WIN32_WINNT'))
+        +  poll_includes = '''
+        +      #define _WIN32_WINNT 0x0A00
+        +      #include <winsock2.h>'''
+         else
         PATCH
         # 打包成 Meson 能识别的 archive
         tar -C subprojects/packagefiles -czf subprojects/packagefiles/_0001_win32_tarball.tar.gz _0001_win32_nt.patch
