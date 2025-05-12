@@ -45,6 +45,7 @@ jobs:
           if ! command -v patch >/dev/null 2>&1; then
             pacman -Sy --noconfirm patch
           fi
+          which patch
 
       - name: Fetch & unpack pkg-config, FreeType, libxml2
         shell: cmd
