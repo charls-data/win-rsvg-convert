@@ -58,7 +58,7 @@ jobs:
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd pkg-config-%PKG_CONFIG_VER%
-          C:\Program Files\Git\usr\bin\patch.exe -p1 < "%WORKSPACE%\pkgconfig.nmake.patch"
+          "C:\Program Files\Git\usr\bin\patch.exe" -p1 < "%WORKSPACE%\pkgconfig.nmake.patch"
           set PATH=%INST%\bin;%PATH%
           nmake /f Makefile.vc CFG=release
           copy /b release\x64\pkg-config.exe %INST%\bin
