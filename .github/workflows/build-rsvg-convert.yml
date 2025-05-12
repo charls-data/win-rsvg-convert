@@ -45,6 +45,7 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set PKG_CONFIG=C:\msys64\usr\bin\pkg-config.exe
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
           md _build_gdk_pixbuf && cd _build_gdk_pixbuf
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false
