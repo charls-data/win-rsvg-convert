@@ -111,21 +111,44 @@ jobs:
         revision = 1.18.0
         EOF
 
-    - name: Create override windows.h for _WIN32_WINNT
+    # —— 1) 生成 glib.wrap，指向本地打包好的 patch archive ——  
+    - name: Write glib.wrap with patch_url pointing to tarball
       working-directory: librsvg
       run: |
-        mkdir -p include_override
-        cat > include_override/windows.h <<'EOF'
-        #ifndef _WIN32_WINNT
-        #define _WIN32_WINNT 0x0A00  /* Windows 10; 改成 0x0601 可兼容 Win7 */
-        #endif
+        mkdir -p subprojects
+        cat > subprojects/glib.wrap <<'EOF'
+        [wrap-git]
+        directory = glib-2.76.5
+        url = https://gitlab.gnome.org/GNOME/glib.git
+        revision = 2.76.5
+        
+        # 下面三行让 Meson 自动解包并打我们的 patch
+        patch_filename = _0001_win32_tarball.tar.gz
+        patch_strip = 1
         EOF
+
+    # —— 2) 把 diff 文件写好并打包成 tar.gz ——  
+    - name: Create patch diff and tarball
+      working-directory: librsvg
+      run: |
+        mkdir -p subprojects/packagefiles
+        cat > subprojects/packagefiles/_0001_win32_nt.patch <<'PATCH'
+        --- a/meson.build
+        +++ b/meson.build
+        @@ -1793,7 +1793,7 @@
+         # If we're cross-compiling on MinGW we won't have
+         # a pre-defined _WIN32_WINNT, so we have to assume
+         # something reasonably modern
+        -  _WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
+        +  _WIN32_WINNT = '0x0A00'  # force Windows 10; change to '0x0601' for Win7
+        PATCH
+        # 打包成 Meson 能识别的 archive
+        tar -C subprojects/packagefiles -czf subprojects/packagefiles/_0001_win32_tarball.tar.gz _0001_win32_nt.patch
 
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
       working-directory: librsvg
       run: |
-        INCLUDE_DIR="$(pwd)/include_override"
         cat > mxe-cross.txt <<'EOF'
         [binaries]
         c         = 'x86_64-w64-mingw32.static-gcc'
@@ -140,8 +163,8 @@ jobs:
         needs_exe_wrapper = true
         
         [built-in options]
-        c_args        = ['-I${INCLUDE_DIR}', '-O2', '-D_WIN32_WINNT=0x0A00']
-        cpp_args      = ['-I${INCLUDE_DIR}', '-O2', '-D_WIN32_WINNT=0x0A00']
+        c_args        = ['-O2', '-D_WIN32_WINNT=0x0A00']
+        cpp_args      = ['-O2', '-D_WIN32_WINNT=0x0A00']
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
