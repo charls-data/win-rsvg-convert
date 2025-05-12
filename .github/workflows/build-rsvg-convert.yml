@@ -165,8 +165,8 @@ jobs:
         needs_exe_wrapper = true
         
         [built-in options]
-        c_args        = ['-O2', '-D_WIN32_WINNT=0x0A00']
-        cpp_args      = ['-O2', '-D_WIN32_WINNT=0x0A00']
+        c_args        = ['-O2']
+        cpp_args      = ['-O2', '-std=c++11']
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
@@ -201,7 +201,8 @@ jobs:
           -Dglib:tests=false \
           -Dpango:introspection=disabled \
           -Dpango:tests=false \
-          -Dglib:xattr=false
+          -Dglib:xattr=false \ 
+          -Dcpp_args="-std=c++11"
 
     - name: Apply Cairo LZO pointer-type patches
       working-directory: librsvg
@@ -210,13 +211,13 @@ jobs:
         sed -i '3005s/(Bytef \*) data, \&out,/(Bytef \*) data, (lzo_uint \*)\\&out,/' subprojects/cairo-1.18.0/util/cairo-script/cairo-script-operators.c
 
         # 修复 cairo-script-file.c 中的指针类型问题
-        sed -i '191s/tmp_str->string, \&len,/tmp_str->string, (lzo_uint \*)\\&len,/' subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
+        sed -i '191s/\&len/(lzo_uint \*)\\&len/' subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
 
     - name: Fix Cairo DWrite font subpixel_order type
       working-directory: librsvg
       run: |
         sed -i '273s/auto subpixel_order/cairo_subpixel_order_t subpixel_order/' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
-        sed -i 's/nullptr/NULL/g' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
+        # sed -i 's/nullptr/NULL/g' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
 
     - name: Build rsvg-convert.exe
       working-directory: librsvg
