@@ -232,6 +232,14 @@ jobs:
 
     - name: Build rsvg-convert.exe
       working-directory: librsvg
+      env:
+        GLIB_SYS_NO_PKG_CONFIG: "1"
+        GLIB_SYS_STATIC: "1"
+        LIBFFI_LIBS: "-lffi"
+        GLIB_LIBS: "-lglib-2.0 -lintl -liconv -lpcre2-8 -lws2_32 -lole32 -lwinmm -lshlwapi -lm"
+        GLIB_LIBDIR: "/usr/lib/mxe/usr/x86_64-w64-mingw32.static/lib"
+        GLIB_INCLUDE_DIR: "/usr/lib/mxe/usr/x86_64-w64-mingw32.static/include/glib-2.0"
+
       run: ninja -C build
 
     # 8️⃣  strip & check
