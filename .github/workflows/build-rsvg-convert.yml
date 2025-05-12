@@ -5,7 +5,7 @@ on:
   push:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-2022
     env:
       INST: ${{ github.workspace }}\rsvg.ci.bin
@@ -16,30 +16,46 @@ jobs:
       DOWNGRADE_RUST_VERSION: '1'
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout source
+        uses: actions/checkout@v3
 
-      - name: Ensure Meson is available
-        run: pip3 install --upgrade --user "meson~=1.2"
-
-      - name: Build all dependencies and librsvg
+      - name: Install Ninja & Meson
         shell: cmd
         run: |
-          :: ——— 设置 MSVC 环境 ———
+          choco install -y ninja
+          pip3 install --upgrade --user "meson~=1.2"
+
+      - name: Add user‐installed scripts & Cargo bin to PATH
+        shell: cmd
+        run: |
+          echo %USERPROFILE%\AppData\Roaming\Python\Python39\Scripts>>%GITHUB_PATH%
+          echo %USERPROFILE%\.cargo\bin>>%GITHUB_PATH%
+
+      - name: Verify Meson & Cargo on PATH
+        shell: cmd
+        run: |
+          meson --version
+          cargo --version
+
+      - name: Build GNOME deps & librsvg
+        shell: cmd
+        run: |
+          :: — Load MSVC x64 environment (VS2022 Enterprise is pre-installed) —
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
 
-          :: ——— 将 MSYS2 工具加入 PATH ———
-          set PATH=%PATH%;C:\msys64\usr\bin
+          :: — Ensure MSYS2 tools (tar, patch) are on PATH —
+          set PATH=C:\msys64\usr\bin;%PATH%
 
-          :: ——— 准备安装目录 ———
+          :: — Prepare install prefix —
           set INST=%CD%\rsvg.ci.bin
           set INST_PSX=%INST:\=/%
 
-          :: ——— 克隆源码 ———
+          :: — Clone sources —
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 
-          :: ——— 构建 GDK-Pixbuf ———
+          :: — Build gdk-pixbuf (includes glib, libpng, libjpeg-turbo) —
           md _build_gdk_pixbuf
           cd _build_gdk_pixbuf
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false
@@ -48,7 +64,7 @@ jobs:
           rmdir /s /q _build_gdk_pixbuf
           copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
-          :: ——— 下载并解包第三方库源码 ———
+          :: — Fetch & unpack pkg-config, FreeType, libxml2 —
           curl -L https://static.rust-lang.org/rustup/dist/%RUST_HOST%/rustup-init.exe -o rustup-init.exe
           curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config-%PKG_CONFIG_VER%.tar.gz
           curl -L https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz -o freetype-%FREETYPE2_VER%.tar.xz
@@ -58,9 +74,9 @@ jobs:
           tar -xf libxml2-%LIBXML2_VER%.tar.xz
           curl -L https://wrapdb.mesonbuild.com/v2/libxml2_%LIBXML2_VER%-1/get_patch -o libxml2_patch.zip
           powershell -Command "Expand-Archive libxml2_patch.zip libxml2_patch"
-          del /f /q *.tar.* libxml2_patch.zip
+          del /f /q pkg-config-%PKG_CONFIG_VER%.tar.gz freetype-%FREETYPE2_VER%.tar.xz libxml2-%LIBXML2_VER%.tar.xz libxml2_patch.zip
 
-          :: ——— 构建 pkg-config —— 应用 patch 后 NMake 编译 ———
+          :: — Build pkg-config (apply patch + NMake) —
           cd pkg-config-%PKG_CONFIG_VER%
           patch -p1 < "%GITHUB_WORKSPACE%\pkgconfig.nmake.patch"
           set PATH=%INST%\bin;%PATH%
@@ -69,28 +85,34 @@ jobs:
           nmake /f Makefile.vc CFG=release clean
           cd ..
 
-          :: ——— 构建 FreeType ———
-          md _build_ft & cd _build_ft
+          :: — Build FreeType —
+          md _build_ft
+          cd _build_ft
           set PATH=%INST%\bin;%PATH%
           meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
-          cd .. & rmdir /s /q _build_ft
+          cd ..
+          rmdir /s /q _build_ft
 
-          :: ——— 构建 libxml2 ———
-          md _build_libxml & cd _build_libxml
+          :: — Build libxml2 —
+          md _build_libxml
+          cd _build_libxml
           set PATH=%INST%\bin;%PATH%
           meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
-          cd .. & rmdir /s /q _build_libxml
+          cd ..
+          rmdir /s /q _build_libxml
 
-          :: —— 构建 Pango —— 
-          md _build_pango & cd _build_pango
+          :: — Build Pango (with HarfBuzz & Cairo) —
+          md _build_pango
+          cd _build_pango
           set PATH=%INST%\bin;%PATH%
           meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
           ninja install
-          cd .. & rmdir /s /q _build_pango
+          cd ..
+          rmdir /s /q _build_pango
 
-          :: —— 安装 Rust & cargo-c —— 
+          :: — Install Rust & cargo-c —
           if exist %USERPROFILE%\.cargo\bin\rustup.exe (
             %USERPROFILE%\.cargo\bin\rustup update
           ) else (
@@ -100,9 +122,12 @@ jobs:
             %USERPROFILE%\.cargo\bin\cargo install cargo-c
           )
 
-          :: —— 构建 librsvg —— 
-          cd librsvg & md msvc-build & cd msvc-build
+          :: — Build librsvg —
+          cd librsvg
+          md msvc-build
+          cd msvc-build
           set PATH=%INST%\bin;%USERPROFILE%\.cargo\bin;%PATH%
+
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
 
           if not "%DOWNGRADE_RUST_VERSION%"=="1" (
@@ -113,7 +138,9 @@ jobs:
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           )
 
-          ninja && ninja test && ninja install
+          ninja
+          ninja test
+          ninja install
 
       - name: Upload install folder
         uses: actions/upload-artifact@v4
