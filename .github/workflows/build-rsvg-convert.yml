@@ -118,9 +118,9 @@ jobs:
         mkdir -p subprojects
         cat > subprojects/glib.wrap <<'EOF'
         [wrap-git]
-        directory = glib-2.76.5
+        directory = glib-2.84.0
         url = https://gitlab.gnome.org/GNOME/glib.git
-        revision = 2.76.5
+        revision = 2.84.0
         
         # 下面三行让 Meson 自动解包并打我们的 patch
         patch_filename = _0001_win32_tarball.tar.gz
@@ -133,8 +133,8 @@ jobs:
       run: |
         mkdir -p subprojects/packagefiles
         cat > subprojects/packagefiles/_0001_win32_nt.patch <<'PATCH'
-        --- a/meson.build
-        +++ b/meson.build
+        --- meson.build
+        +++ meson.build
         @@ -1793,7 +1793,7 @@
          # If we're cross-compiling on MinGW we won't have
          # a pre-defined _WIN32_WINNT, so we have to assume
