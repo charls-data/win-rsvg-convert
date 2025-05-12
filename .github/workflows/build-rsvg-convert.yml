@@ -110,6 +110,12 @@ jobs:
         url = https://gitlab.freedesktop.org/cairo/cairo.git
         revision = 1.18.0
         EOF
+        cat > subprojects/pango.wrap <<'EOF'
+        [wrap-git]
+        directory = pango-1.56.2
+        url = https://gitlab.gnome.org/GNOME/pango.git
+        revision = 1.56.2
+        EOF
 
     # —— 1) 生成 glib.wrap，指向本地打包好的 patch archive ——  
     - name: Write glib.wrap with patch_url pointing to tarball
