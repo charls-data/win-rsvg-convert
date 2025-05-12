@@ -123,7 +123,7 @@ jobs:
         revision = 2.84.0
         
         # 下面三行让 Meson 自动解包并打我们的 patch
-        patch_directory = packagefiles/glib
+        patch_directory = glib
         patch_strip = 0
         EOF
 
