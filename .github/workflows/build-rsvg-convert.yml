@@ -112,9 +112,9 @@ jobs:
         EOF
         cat > subprojects/pango.wrap <<'EOF'
         [wrap-git]
-        directory = pango-1.56.2
+        directory = pango-1.50.0
         url = https://gitlab.gnome.org/GNOME/pango.git
-        revision = 1.56.2
+        revision = 1.50.0
         EOF
         cat > subprojects/harfbuzz.wrap <<'EOF'
         [wrap-git]
@@ -184,7 +184,6 @@ jobs:
       env:
         CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32.static-gcc
         PKG_CONFIG_ALLOW_CROSS: "1"
-        PKG_CONFIG_PATH: "/usr/lib/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig:/home/runner/work/win-rsvg-convert/win-rsvg-convert/librsvg/build/meson-uninstalled"
         RUSTFLAGS: "-C target-feature=+crt-static -C linker=x86_64-w64-mingw32.static-gcc -C panic=abort"
       run: |
         meson setup build \
