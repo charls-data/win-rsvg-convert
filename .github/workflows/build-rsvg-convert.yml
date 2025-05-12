@@ -7,140 +7,130 @@ on:
 jobs:
   build:
     runs-on: windows-2022
+
     env:
+      WORKSPACE: ${{ github.workspace }}
       INST: ${{ github.workspace }}\rsvg.ci.bin
+      INST_PSX: ${{ github.workspace }}/rsvg.ci.bin
       LIBXML2_VER: 2.12.6
       FREETYPE2_VER: 2.13.0
       PKG_CONFIG_VER: 0.29.2
       RUST_HOST: x86_64-pc-windows-msvc
-      DOWNGRADE_RUST_VERSION: '1'
+      MSYS2_BIN: C:\msys64\usr\bin
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
 
-      - name: Install Ninja & Meson
-        shell: cmd
+      - name: Install Meson via pip
         run: |
-          choco install -y ninja
           pip3 install --upgrade --user "meson~=1.2"
 
-      - name: Add user‐installed scripts & Cargo bin to PATH
+      - name: Add Meson & Cargo to PATH
         shell: cmd
         run: |
           echo %USERPROFILE%\AppData\Roaming\Python\Python39\Scripts>>%GITHUB_PATH%
           echo %USERPROFILE%\.cargo\bin>>%GITHUB_PATH%
 
-      - name: Verify Meson & Cargo on PATH
+      - name: Verify Meson & Cargo
         shell: cmd
         run: |
           meson --version
           cargo --version
+          where.exe cargo
 
-      - name: Build GNOME deps & librsvg
+      - name: Build gdk-pixbuf
         shell: cmd
         run: |
-          :: — Load MSVC x64 environment (VS2022 Enterprise is pre-installed) —
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-
-          :: — Ensure MSYS2 tools (tar, patch) are on PATH —
-          set PATH=C:\msys64\usr\bin;%PATH%
-
-          :: — Prepare install prefix —
-          set INST=%CD%\rsvg.ci.bin
-          set INST_PSX=%INST:\=/%
-
-          :: — Clone sources —
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
-          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
-          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
-
-          :: — Build gdk-pixbuf (includes glib, libpng, libjpeg-turbo) —
-          md _build_gdk_pixbuf
-          cd _build_gdk_pixbuf
+          md _build_gdk_pixbuf && cd _build_gdk_pixbuf
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false
           ninja install
-          cd ..
-          rmdir /s /q _build_gdk_pixbuf
+          cd .. && rmdir /s /q _build_gdk_pixbuf
           copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
-          :: — Fetch & unpack pkg-config, FreeType, libxml2 —
-          curl -L https://static.rust-lang.org/rustup/dist/%RUST_HOST%/rustup-init.exe -o rustup-init.exe
-          curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config-%PKG_CONFIG_VER%.tar.gz
-          curl -L https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz -o freetype-%FREETYPE2_VER%.tar.xz
-          curl -L https://download.gnome.org/sources/libxml2/2.12/libxml2-%LIBXML2_VER%.tar.xz -o libxml2-%LIBXML2_VER%.tar.xz
-          tar -xf pkg-config-%PKG_CONFIG_VER%.tar.gz
-          tar -xf freetype-%FREETYPE2_VER%.tar.xz
-          tar -xf libxml2-%LIBXML2_VER%.tar.xz
+      - name: Fetch & unpack pkg-config, FreeType, libxml2
+        shell: cmd
+        run: |
+          curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config.tar.gz
+          curl -L https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz -o freetype.tar.xz
+          curl -L https://download.gnome.org/sources/libxml2/2.12/libxml2-%LIBXML2_VER%.tar.xz -o libxml2.tar.xz
+          "%MSYS2_BIN%\tar.exe" -xf pkg-config.tar.gz
+          "%MSYS2_BIN%\tar.exe" -xf freetype.tar.xz
+          "%MSYS2_BIN%\tar.exe" -xf libxml2.tar.xz
           curl -L https://wrapdb.mesonbuild.com/v2/libxml2_%LIBXML2_VER%-1/get_patch -o libxml2_patch.zip
           powershell -Command "Expand-Archive libxml2_patch.zip libxml2_patch"
-          del /f /q pkg-config-%PKG_CONFIG_VER%.tar.gz freetype-%FREETYPE2_VER%.tar.xz libxml2-%LIBXML2_VER%.tar.xz libxml2_patch.zip
+          del /f /q pkg-config.tar.gz freetype.tar.xz libxml2.tar.xz libxml2_patch.zip
 
-          :: — Build pkg-config (apply patch + NMake) —
+      - name: Build pkg-config
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd pkg-config-%PKG_CONFIG_VER%
-          patch -p1 < "%GITHUB_WORKSPACE%\pkgconfig.nmake.patch"
+          "%MSYS2_BIN%\patch.exe" -p1 < "%WORKSPACE%\pkgconfig.nmake.patch"
           set PATH=%INST%\bin;%PATH%
           nmake /f Makefile.vc CFG=release
           copy /b release\x64\pkg-config.exe %INST%\bin
           nmake /f Makefile.vc CFG=release clean
           cd ..
 
-          :: — Build FreeType —
-          md _build_ft
-          cd _build_ft
+      - name: Build FreeType
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          md _build_ft && cd _build_ft
           set PATH=%INST%\bin;%PATH%
           meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
-          cd ..
-          rmdir /s /q _build_ft
+          cd .. && rmdir /s /q _build_ft
 
-          :: — Build libxml2 —
-          md _build_libxml
-          cd _build_libxml
+      - name: Build libxml2
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          md _build_libxml && cd _build_libxml
           set PATH=%INST%\bin;%PATH%
           meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
-          cd ..
-          rmdir /s /q _build_libxml
+          cd .. && rmdir /s /q _build_libxml
 
-          :: — Build Pango (with HarfBuzz & Cairo) —
-          md _build_pango
-          cd _build_pango
+      - name: Build Pango
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
+          md _build_pango && cd _build_pango
           set PATH=%INST%\bin;%PATH%
           meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
           ninja install
-          cd ..
-          rmdir /s /q _build_pango
+          cd .. && rmdir /s /q _build_pango
 
-          :: — Install Rust & cargo-c —
-          if exist %USERPROFILE%\.cargo\bin\rustup.exe (
-            %USERPROFILE%\.cargo\bin\rustup update
-          ) else (
-            rustup-init.exe -y --default-toolchain=stable-%RUST_HOST% --default-host=%RUST_HOST%
-          )
+      - name: Ensure Rust toolchain & cargo-c
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          rustup default stable-%RUST_HOST%
           if not exist %USERPROFILE%\.cargo\bin\cargo-cbuild.exe (
-            %USERPROFILE%\.cargo\bin\cargo install cargo-c
+            cargo install cargo-c
           )
 
-          :: — Build librsvg —
-          cd librsvg
-          md msvc-build
-          cd msvc-build
+      - name: Build librsvg
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
+          md librsvg\msvc-build && cd librsvg\msvc-build
           set PATH=%INST%\bin;%USERPROFILE%\.cargo\bin;%PATH%
-
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
-
           if not "%DOWNGRADE_RUST_VERSION%"=="1" (
             set RUST_DOWNGRADE_VER=1.82.0
-            %USERPROFILE%\.cargo\bin\rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
+            rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER%
           ) else (
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           )
-
-          ninja
-          ninja test
-          ninja install
+          ninja && ninja test && ninja install
 
       - name: Upload install folder
         uses: actions/upload-artifact@v4
