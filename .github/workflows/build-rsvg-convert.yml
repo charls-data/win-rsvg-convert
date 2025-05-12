@@ -221,9 +221,9 @@ jobs:
         (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
         subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
 
-        sed -i '1636c\
-        (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
-        subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
+        # sed -i '1636c\
+        # (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
+        # subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
 
     - name: Fix Cairo DWrite font subpixel_order type
       working-directory: librsvg
