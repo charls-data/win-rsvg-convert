@@ -210,7 +210,9 @@ jobs:
         sed -i '3005s/(Bytef \*) data, \&out,/(Bytef \*) data, (lzo_uint \*)\\&out,/' subprojects/cairo-1.18.0/util/cairo-script/cairo-script-operators.c
 
         # 修复 cairo-script-file.c 中的指针类型问题
-        sed -i '191s@(lzo_bytep) tmp_str->string, &len,@(lzo_bytep) tmp_str->string, (lzo_uint *) &len,@' subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
+        sed -i '191c\
+        (lzo_bytep) tmp_str->string, (lzo_uint *)&len,' \
+        subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
 
     - name: Fix Cairo DWrite font subpixel_order type
       working-directory: librsvg
