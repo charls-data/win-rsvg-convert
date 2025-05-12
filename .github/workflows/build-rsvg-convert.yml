@@ -183,7 +183,7 @@ jobs:
           -Dglib:tests=false \
           -Dpango:introspection=disabled \
           -Dpango:tests=false \
-          -Dfile-xattr=false
+          -Dxattr=false
     - name: Build rsvg-convert.exe
       working-directory: librsvg
       run: ninja -C build rsvg-convert
