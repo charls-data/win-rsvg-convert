@@ -123,29 +123,19 @@ jobs:
         revision = 2.84.0
         
         # 下面三行让 Meson 自动解包并打我们的 patch
-        patch_filename = _0001_win32_tarball.tar.gz
-        patch_strip = 1
+        patch_filename = glib_meson.build.tar.gz
+        patch_strip = 0
         EOF
 
-    # —— 2) 把 diff 文件写好并打包成 tar.gz ——  
-    - name: Create patch diff and tarball
+    # ① 在 librsvg/ 目录下创建 subprojects/packagefiles 并拷贝进来
+    - name: Copy custom glib_meson.build into librsvg subprojects
       working-directory: librsvg
       run: |
         mkdir -p subprojects/packagefiles
-        cat > subprojects/packagefiles/_0001_win32_nt.patch <<'PATCH'
-        --- meson.build
-        +++ meson.build
-         elif has_winsock2
-        -  poll_includes = '''
-        -      #define _WIN32_WINNT @0@
-        -      #include <winsock2.h>'''.format(glib_conf.get('_WIN32_WINNT'))
-        +  poll_includes = '''
-        +      #define _WIN32_WINNT 0x0A00
-        +      #include <winsock2.h>'''
-         else
-        PATCH
-        # 打包成 Meson 能识别的 archive
-        tar -C subprojects/packagefiles -czf subprojects/packagefiles/_0001_win32_tarball.tar.gz _0001_win32_nt.patch
+        cp ../glib_meson.build subprojects/packagefiles/meson.build
+        tar -C subprojects/packagefiles \
+            -czf subprojects/packagefiles/glib_meson.build.tar.gz \
+            meson.build
 
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
