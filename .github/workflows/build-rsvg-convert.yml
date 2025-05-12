@@ -204,7 +204,7 @@ jobs:
           -Dglib:xattr=false
     - name: Build rsvg-convert.exe
       working-directory: librsvg
-      run: ninja -C build rsvg-convert
+      run: ninja -C build
 
     # 8️⃣  strip & check
     - name: Strip + size check
