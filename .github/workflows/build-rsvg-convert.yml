@@ -206,7 +206,7 @@ jobs:
     - name: Apply Cairo LZO pointer-type patch
       working-directory: librsvg
       run: |
-        cat > cairo-lzo-fix.patch << 'EOF'
+        cat << 'EOF' > cairo-lzo-fix.patch
         --- subprojects/cairo-1.18.0/util/cairo-script/cairo-script-operators.c
         +++ subprojects/cairo-1.18.0/util/cairo-script/cairo-script-operators.c
         @@
