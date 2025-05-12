@@ -38,6 +38,14 @@ jobs:
           meson --version
           cargo --version
 
+      - name: Ensure MSYS2 patch utility
+        # use the pre-installed MSYS2 bash
+        shell: msys2 {0}
+        run: |
+          if ! command -v patch >/dev/null 2>&1; then
+            pacman -Sy --noconfirm patch
+          fi
+
       - name: Fetch & unpack pkg-config, FreeType, libxml2
         shell: cmd
         run: |
