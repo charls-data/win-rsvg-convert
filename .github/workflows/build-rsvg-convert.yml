@@ -1,252 +1,161 @@
-name: Build rsvg-convert-2.60.0 (MXE binary + Rust static Win-x64)
+# .github/workflows/windows-librsvg.yml
+name: Build librsvg on Windows
 
 on:
   push:
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04        # jammy runner 没问题，仓库用 focal
+  build-windows:
+    runs-on: windows-2019
+
+    env:
+      INST: ${{ github.workspace }}\rsvg.ci.bin
+      LIBXML2_VER: 2.12.6
+      FREETYPE2_VER: 2.13.0
+      PKG_CONFIG_VER: 0.29.2
+      RUST_HOST: x86_64-pc-windows-msvc
+      DOWNGRADE_RUST_VERSION: '1'
+      MSYS2_BINDIR: C:\msys64\usr\bin
 
     steps:
-    - uses: actions/checkout@v4
-      with: { fetch-depth: 1 }
+      - uses: actions/checkout@v3
 
-    # 1️⃣  添加 MXE 仓库（固定 focal）+ 两把 GPG 密钥
-    - name: Add MXE repo & keys
-      run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y --no-install-recommends gnupg dirmngr
+      - name: Install MSYS2 and GNU tools
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: |
+            tar
+            gzip
+            xz
+            wget
+            patch
+            bzip2
 
-        # 两把签名钥匙：86B72ED9（旧）+ 33A3A276（新）
-        gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 \
-            --recv-keys 86B72ED9 33A3A276 || true
+      - name: Set up MSVC x64 environment
+        shell: cmd
+        run: |
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
 
-        sudo mkdir -p /usr/share/keyrings
-        gpg --batch --export 86B72ED9 33A3A276 \
-            | sudo tee /usr/share/keyrings/mxe.gpg >/dev/null
+      - name: Upgrade pip & install Meson
+        run: pip3 install --upgrade --user "meson~=1.2"
 
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/mxe.gpg] \
-             https://pkg.mxe.cc/repos/apt focal main" \
-          | sudo tee /etc/apt/sources.list.d/mxe.list
+      - name: Clone GNOME dependencies
+        shell: cmd
+        run: |
+          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
+          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
+          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 
-        # 若第二把钥匙仍未同步，重试失败时降级 trusted=yes
-        if ! sudo apt-get update -qq; then
-          echo "::warning ::MXE repo signature check failed – falling back to trusted=yes"
-          echo "deb [arch=amd64 trusted=yes] https://pkg.mxe.cc/repos/apt focal main" \
-            | sudo tee /etc/apt/sources.list.d/mxe.list
-          sudo apt-get update -qq
-        fi
+      - name: Build GDK-Pixbuf (and glib/png/jpeg)
+        shell: cmd
+        run: |
+          set INST_PSX=%INST:\=/%
+          md _build_gdk_pixbuf
+          cd _build_gdk_pixbuf
+          meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false
+          ninja install
+          cd ..
+          rmdir /s /q _build_gdk_pixbuf
+          copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
-    # 2️⃣  安装交叉工具链 + librsvg 依赖（包名与 MXE 数据库一致）
-    - name: Install MXE toolchain & libs
-      run: |
-        sudo apt-get install -y \
-          mxe-x86-64-w64-mingw32.static-gcc \
-          mxe-x86-64-w64-mingw32.static-pkgconf \
-          mxe-x86-64-w64-mingw32.static-glib \
-          mxe-x86-64-w64-mingw32.static-cairo \
-          mxe-x86-64-w64-mingw32.static-pango \
-          mxe-x86-64-w64-mingw32.static-gdk-pixbuf \
-          mxe-x86-64-w64-mingw32.static-harfbuzz \
-          mxe-x86-64-w64-mingw32.static-fribidi \
-          mxe-x86-64-w64-mingw32.static-libxml2 \
-          mxe-x86-64-w64-mingw32.static-libcroco \
-          mxe-x86-64-w64-mingw32.static-zlib
+      - name: Download & unpack pkg-config, FreeType, libxml2
+        shell: cmd
+        run: |
+          set PATH=%MSYS2_BINDIR%;%PATH%
+          if not exist %USERPROFILE%\.cargo\bin\rustup.exe %MSYS2_BINDIR%\wget https://static.rust-lang.org/rustup/dist/%RUST_HOST%/rustup-init.exe -O rustup-init.exe
+          %MSYS2_BINDIR%\wget https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz
+          %MSYS2_BINDIR%\wget https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz
+          %MSYS2_BINDIR%\wget https://download.gnome.org/sources/libxml2/2.12/libxml2-%LIBXML2_VER%.tar.xz
+          %MSYS2_BINDIR%\wget --content-disposition https://wrapdb.mesonbuild.com/v2/libxml2_%LIBXML2_VER%-1/get_patch
+          %MSYS2_BINDIR%\tar -xf pkg-config-%PKG_CONFIG_VER%.tar.gz
+          %MSYS2_BINDIR%\tar -Jxf freetype-%FREETYPE2_VER%.tar.xz
+          %MSYS2_BINDIR%\tar -Jxf libxml2-%LIBXML2_VER%.tar.xz
+          python -c "import zipfile; zipfile.ZipFile('libxml2_%LIBXML2_VER%-1_patch.zip','r').extractall()"
+          del /f /q pkg-config-%PKG_CONFIG_VER%.tar.gz freetype-%FREETYPE2_VER%.tar.xz libxml2-%LIBXML2_VER%.tar.xz libxml2_%LIBXML2_VER%-1_patch.zip
 
-        # ➜ 把 MXE bin 目录加入 PATH，供 Meson 找到交叉编译器
-        echo "/usr/lib/mxe/usr/bin" >> $GITHUB_PATH
+      - name: Build pkg-config
+        shell: cmd
+        run: |
+          cd pkg-config-%PKG_CONFIG_VER%
+          %MSYS2_BINDIR%\patch -p1 < "%GITHUB_WORKSPACE%\ci\pkgconfig.nmake.patch"
+          set PATH=%INST%\bin;%PATH%
+          nmake /f Makefile.vc CFG=release
+          copy /b release\x64\pkg-config.exe %INST%\bin
+          nmake /f Makefile.vc CFG=release clean
+          cd ..
 
-    # 3️⃣  安装 Rust 并启用 Windows-GNU 目标
-    - name: Install Rust toolchain + prebuilt cargo-c
-      run: |
-        # 1️⃣ 安装 stable Rust（默认路径 ~/.cargo）
-        curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
-        source "$HOME/.cargo/env"
-        rustup target add x86_64-pc-windows-gnu
+      - name: Build FreeType
+        shell: cmd
+        run: |
+          set INST_PSX=%INST:\=/%
+          md _build_ft
+          cd _build_ft
+          meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
+          ninja install
+          cd ..
+          rmdir /s /q _build_ft
 
-        # ── ② 下载并解包 cargo-c 静态 musl 版 (≈5 s) ────────────────
-        CARGO_C_VER="0.10.12"
-        ASSET="cargo-c-x86_64-unknown-linux-musl.tar.gz"
-        URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/${ASSET}"
+      - name: Build libxml2
+        shell: cmd
+        run: |
+          set INST_PSX=%INST:\=/%
+          md _build_libxml
+          cd _build_libxml
+          meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
+          ninja install
+          cd ..
+          rmdir /s /q _build_libxml
 
-        curl -fL "$URL" -o /tmp/${ASSET}
+      - name: Build Pango (with HarfBuzz & Cairo)
+        shell: cmd
+        run: |
+          set INST_PSX=%INST:\=/%
+          md _build_pango
+          cd _build_pango
+          meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
+          ninja install
+          cd ..
+          rmdir /s /q _build_pango
 
-        # ③ 解包到临时目录，再复制可执行文件
-        TMPDIR=$(mktemp -d)
-        tar -xzf /tmp/${ASSET} -C "$TMPDIR"
-        CARGO_BIN="$HOME/.cargo/bin"
-        mkdir -p "$CARGO_BIN"
-        find "$TMPDIR" -type f -perm -u+x -name 'cargo-c*' -exec cp {} "$CARGO_BIN" \;
+      - name: Install Rust & cargo-c
+        shell: cmd
+        run: |
+          if exist %USERPROFILE%\.cargo\bin\rustup.exe (
+            %USERPROFILE%\.cargo\bin\rustup update
+          ) else (
+            rustup-init.exe -y --default-toolchain=stable-%RUST_HOST% --default-host=%RUST_HOST%
+          )
+          if not exist %USERPROFILE%\.cargo\bin\cargo-cbuild.exe (
+            %USERPROFILE%\.cargo\bin\cargo install cargo-c
+          )
 
-        # 3️⃣ 把 ~/.cargo/bin 加入 PATH（供后续 Meson 调用）
-        echo "$CARGO_BIN" >> "$GITHUB_PATH"
+      - name: Build librsvg
+        shell: cmd
+        run: |
+          cd librsvg
+          set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+          set PKG_CONFIG=%INST%\bin\pkg-config.exe
+          set INST_PSX=%INST:\=/%
+          md msvc-build 2>nul
+          cd msvc-build
 
-        # 4️⃣ 版本确认
-        cargo --version
-        cargo-cbuild --version
+          if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
 
-    # 4️⃣  安装 Ninja（APT） + 最新 Meson（pip ≥ 1.3.0）
-    - name: Install Ninja & Meson >=1.3
-      run: |
-        sudo apt-get install -y ninja-build python3-pip python3-setuptools python3-wheel
-        # 安装 / 升级 Meson 到最新稳定版（目前 1.4.x）
-        python3 -m pip install --upgrade --no-cache-dir 'meson>=1.3'
-        # 把 pip 安装路径加入 PATH，确保后续调用到新版本
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-        meson --version    # sanity-check：应 ≥ 1.3.0
+          if not "%DOWNGRADE_RUST_VERSION%"=="1" goto normal_rust
+            set RUST_DOWNGRADE_VER=1.82.0
+            %USERPROFILE%\.cargo\bin\rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
+            meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER%
+            goto cont
+          :normal_rust
+            meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
+          :cont
+          ninja
+          ninja test
+          ninja install
 
-    # 5️⃣  获取 librsvg-2.60.0 源码
-    - name: Clone librsvg 2.60.0
-      run: git clone --depth 1 --branch 2.60.0 https://gitlab.gnome.org/GNOME/librsvg.git
-
-    # 5️⃣½  ← 这里是新增的 wrap 步骤
-    - name: Add cairo.wrap (1.18.0) for subprojects
-      working-directory: librsvg
-      run: |
-        mkdir -p subprojects
-        cat > subprojects/cairo.wrap <<'EOF'
-        [wrap-git]
-        directory = cairo-1.18.0
-        url = https://gitlab.freedesktop.org/cairo/cairo.git
-        revision = 1.18.0
-        EOF
-        cat > subprojects/pango.wrap <<'EOF'
-        [wrap-git]
-        directory = pango-1.50.0
-        url = https://gitlab.gnome.org/GNOME/pango.git
-        revision = 1.50.0
-        EOF
-        cat > subprojects/harfbuzz.wrap <<'EOF'
-        [wrap-git]
-        directory = harfbuzz-11.0.0
-        url = https://github.com/harfbuzz/harfbuzz.git
-        revision = 11.0.0
-        EOF
-
-    # —— 1) 生成 glib.wrap，指向本地打包好的 patch archive ——  
-    - name: Write glib.wrap with patch_url pointing to tarball
-      working-directory: librsvg
-      run: |
-        mkdir -p subprojects
-        cat > subprojects/glib.wrap <<'EOF'
-        [wrap-git]
-        directory = glib-2.84.0
-        url = https://gitlab.gnome.org/GNOME/glib.git
-        revision = 2.84.0
-        
-        # 下面三行让 Meson 自动解包并打我们的 patch
-        patch_directory = glib
-        patch_strip = 0
-        EOF
-
-    # —1— 在 subprojects/packagefiles/glib 下放置完整的自定义 meson.build
-    - name: Prepare glib overlay directory
-      working-directory: librsvg
-      run: |
-        mkdir -p subprojects/packagefiles/glib
-        # 将仓库根的 glib_meson.build 复制进去并重命名为 meson.build
-        cp ../glib_meson.build subprojects/packagefiles/glib/meson.build
-
-    # 6️⃣  生成 Meson cross-file
-    - name: Create Meson cross file
-      working-directory: librsvg
-      run: |
-        cat > mxe-cross.txt <<'EOF'
-        [binaries]
-        c         = 'x86_64-w64-mingw32.static-gcc'
-        cpp       = 'x86_64-w64-mingw32.static-g++'
-        ar        = 'x86_64-w64-mingw32.static-ar'
-        windres   = 'x86_64-w64-mingw32.static-windres'
-        pkg-config = 'x86_64-w64-mingw32.static-pkg-config'
-        strip     = 'x86_64-w64-mingw32.static-strip'
-        rust      = 'rustc'
-        
-        [properties]
-        needs_exe_wrapper = true
-        
-        [built-in options]
-        c_args        = ['-O2', '-w']
-        cpp_args      = ['-O2', '-std=c++11', '-w']
-        c_link_args   = ['-static']
-        cpp_link_args = ['-static']
-        default_library = 'static'
-
-        [host_machine]
-        system     = 'windows'
-        cpu_family = 'x86_64'
-        cpu        = 'x86_64'
-        endian     = 'little'
-        EOF
-
-    # 7️⃣  配置 & 编译 rsvg-convert
-    - name: Meson configure
-      working-directory: librsvg
-      env:
-        CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32.static-gcc
-        PKG_CONFIG_ALLOW_CROSS: "1"
-        RUSTFLAGS: "-C target-feature=+crt-static -C linker=x86_64-w64-mingw32.static-gcc -C panic=abort"
-      run: |
-        meson setup build \
-          --cross-file mxe-cross.txt \
-          --wrap-mode=forcefallback \
-          -Ddefault_library=static \
-          -Dintrospection=disabled \
-          -Dtests=false \
-          -Db_lto=true \
-          -Dcairo:glib=enabled \
-          -Dcairo:gobject=enabled \
-          -Dglib:libmount=disabled \
-          -Dglib:selinux=disabled \
-          -Dglib:introspection=disabled \
-          -Dglib:tests=false \
-          -Dpango:introspection=disabled \
-          -Dpango:tests=false \
-          -Dglib:xattr=false
-
-    - name: Apply Cairo LZO pointer-type patches
-      working-directory: librsvg
-      run: |
-        # 修复 cairo-script-operators.c 中的指针类型问题
-        sed -i '3005c\
-        (Bytef *) data, (lzo_uint *)&out,' \
-        subprojects/cairo-1.18.0/util/cairo-script/cairo-script-operators.c
-
-        # 修复 cairo-script-file.c 中的指针类型问题
-        sed -i '191c\
-        (lzo_bytep) tmp_str->string, (lzo_uint *)&len,' \
-        subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
-
-        sed -i '1603c\
-        (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
-        subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
-
-        # sed -i '1636c\
-        # (lzo_bytep) mem, (lzo_uint *)&mem_len,' \
-        # subprojects/cairo-1.18.0/util/cairo-script/cairo-script-scanner.c
-
-    - name: Fix Cairo DWrite font subpixel_order type
-      working-directory: librsvg
-      run: |
-        sed -i '273s/auto subpixel_order/cairo_subpixel_order_t subpixel_order/' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
-        # sed -i 's/nullptr/NULL/g' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
-
-    - name: Build rsvg-convert.exe
-      working-directory: librsvg
-      env:
-        GLIB_SYS_NO_PKG_CONFIG: "1"
-
-      run: meson compile -C build
-
-    # 8️⃣  strip & check
-    - name: Strip + size check
-      working-directory: librsvg
-      run: |
-        x86_64-w64-mingw32.static-strip build/rsvg-convert.exe
-        file build/rsvg-convert.exe
-        du -h build/rsvg-convert.exe
-
-    # 9️⃣  发布 artifact
-    - uses: actions/upload-artifact@v4
-      with:
-        name: rsvg-convert-2.60.0-win64-static
-        path: librsvg/build/rsvg-convert.exe
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: librsvg-install
+          path: rsvg.ci.bin
