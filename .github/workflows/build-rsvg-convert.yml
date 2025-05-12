@@ -38,6 +38,7 @@ jobs:
         run: |
           meson --version
           cargo --version
+          where.exe patch
 
       - name: Fetch & unpack pkg-config, FreeType, libxml2
         shell: cmd
