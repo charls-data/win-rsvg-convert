@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     env:
       WORKSPACE: ${{ github.workspace }}
@@ -46,7 +46,6 @@ jobs:
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
-          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
           md _build_gdk_pixbuf && cd _build_gdk_pixbuf
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false
           ninja install
@@ -126,6 +125,7 @@ jobs:
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
           md librsvg\msvc-build && cd librsvg\msvc-build
           set PATH=%INST%\bin;%USERPROFILE%\.cargo\bin;%PATH%
+          set PKG_CONFIG=%INST%\bin\pkg-config.exe
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
           if "%DOWNGRADE_RUST_VERSION%" == "1" (
             set RUST_DOWNGRADE_VER=1.82.0
