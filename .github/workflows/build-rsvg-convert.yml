@@ -158,6 +158,12 @@ jobs:
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
+
+        [host_machine]
+        system     = 'windows'
+        cpu_family = 'x86_64'
+        cpu        = 'x86_64'
+        endian     = 'little'
         EOF
 
     # 7️⃣  配置 & 编译 rsvg-convert
