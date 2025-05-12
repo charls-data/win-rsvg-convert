@@ -111,52 +111,28 @@ jobs:
         revision = 1.18.0
         EOF
 
-    - name: Add glib & pango wraps (glib-2.80.0 / pango-1.52.0)
+    - name: Create override windows.h for _WIN32_WINNT
       working-directory: librsvg
       run: |
-        mkdir -p subprojects
-        cat > subprojects/glib.wrap <<'EOF'
-        [wrap-git]
-        directory = glib-2.76.5
-        url = https://gitlab.gnome.org/GNOME/glib.git
-        revision = 2.76.5
-
-        patch_filename = _0001_win32_nt.patch
-        patch_strip = 1
+        mkdir -p include_override
+        cat > include_override/windows.h <<'EOF'
+        #ifndef _WIN32_WINNT
+        #define _WIN32_WINNT 0x0A00  /* Windows 10; 改成 0x0601 可兼容 Win7 */
+        #endif
         EOF
-        cat > subprojects/pango.wrap <<'EOF'
-        [wrap-git]
-        directory = pango-1.50.14
-        url = https://gitlab.gnome.org/GNOME/pango.git
-        revision = 1.50.14
-        EOF
-
-    # 2) 将补丁文件放到同一目录：subprojects/
-    - name: Create _0001_win32_nt.patch in subprojects
-      working-directory: librsvg
-      run: |
-        cat > subprojects/_0001_win32_nt.patch <<'PATCH'
-        --- a/meson.build
-        +++ b/meson.build
-        @@ -1793,7 +1793,7 @@
-         # If we're cross-compiling on MinGW we won't have
-         # a pre-defined _WIN32_WINNT, so we have to assume
-         # something reasonably modern
-        -  _WIN32_WINNT = cc.get_define('_WIN32_WINNT', prefix : '#include <windows.h>')
-        +  _WIN32_WINNT = '0x0A00'  # force Windows 10; change to '0x0601' for Win7
-        PATCH
 
     # 6️⃣  生成 Meson cross-file
     - name: Create Meson cross file
       working-directory: librsvg
       run: |
+        INCLUDE_DIR="$(pwd)/include_override"
         cat > mxe-cross.txt <<'EOF'
         [binaries]
         c         = 'x86_64-w64-mingw32.static-gcc'
         cpp       = 'x86_64-w64-mingw32.static-g++'
         ar        = 'x86_64-w64-mingw32.static-ar'
         windres   = 'x86_64-w64-mingw32.static-windres'
-        pkgconfig = 'x86_64-w64-mingw32.static-pkg-config'
+        pkg-config = 'x86_64-w64-mingw32.static-pkg-config'
         strip     = 'x86_64-w64-mingw32.static-strip'
         rust      = 'rustc'
         
@@ -164,8 +140,8 @@ jobs:
         needs_exe_wrapper = true
         
         [built-in options]
-        c_args  = ['-O2']
-        cpp_args = ['-O2']
+        c_args        = ['-I${INCLUDE_DIR}', '-O2', '-D_WIN32_WINNT=0x0A00']
+        cpp_args      = ['-I${INCLUDE_DIR}', '-O2', '-D_WIN32_WINNT=0x0A00']
         c_link_args   = ['-static']
         cpp_link_args = ['-static']
         default_library = 'static'
