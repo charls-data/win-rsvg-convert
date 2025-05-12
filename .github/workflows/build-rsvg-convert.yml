@@ -1,12 +1,12 @@
 # .github/workflows/windows-librsvg.yml
-name: Build librsvg on Windows
+name: Build librsvg on Windows 2022
 
 on:
   push:
 
 jobs:
-  build:
-    runs-on: windows-2019
+  build-windows:
+    runs-on: windows-2022
     env:
       INST: ${{ github.workspace }}\rsvg.ci.bin
       LIBXML2_VER: 2.12.6
@@ -18,20 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Ninja via Chocolatey
-        shell: cmd
-        run: |
-          choco install -y ninja
-
-      - name: Install Meson via pip
+      - name: Ensure Meson is available
         run: pip3 install --upgrade --user "meson~=1.2"
 
-      - name: Build GNOME deps & librsvg
+      - name: Build all dependencies and librsvg
         shell: cmd
         run: |
-          :: ——— 定位并加载 MSVC x64 环境 ———
-          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath"`) do set VSINSTALL=%%i
-          call "%VSINSTALL%\VC\Auxiliary\Build\vcvarsall.bat" x64
+          :: ——— 设置 MSVC 环境 ———
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+
+          :: ——— 将 MSYS2 工具加入 PATH ———
+          set PATH=%PATH%;C:\msys64\usr\bin
 
           :: ——— 准备安装目录 ———
           set INST=%CD%\rsvg.ci.bin
@@ -51,23 +48,20 @@ jobs:
           rmdir /s /q _build_gdk_pixbuf
           copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
-          :: ——— 下载并解包 pkg-config, FreeType, libxml2 ———
+          :: ——— 下载并解包第三方库源码 ———
           curl -L https://static.rust-lang.org/rustup/dist/%RUST_HOST%/rustup-init.exe -o rustup-init.exe
           curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config-%PKG_CONFIG_VER%.tar.gz
           curl -L https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz -o freetype-%FREETYPE2_VER%.tar.xz
           curl -L https://download.gnome.org/sources/libxml2/2.12/libxml2-%LIBXML2_VER%.tar.xz -o libxml2-%LIBXML2_VER%.tar.xz
-          curl -L https://downloads.sourceforge.net/gnuwin32/patch-2.5.9-gnuwin32-bin.zip -o patch.zip
-
           tar -xf pkg-config-%PKG_CONFIG_VER%.tar.gz
           tar -xf freetype-%FREETYPE2_VER%.tar.xz
           tar -xf libxml2-%LIBXML2_VER%.tar.xz
-          powershell -Command "Expand-Archive patch.zip -DestinationPath patchbin"
-          del /f /q pkg-config-%PKG_CONFIG_VER%.tar.gz freetype-%FREETYPE2_VER%.tar.xz libxml2-%LIBXML2_VER%.tar.xz patch.zip
+          curl -L https://wrapdb.mesonbuild.com/v2/libxml2_%LIBXML2_VER%-1/get_patch -o libxml2_patch.zip
+          powershell -Command "Expand-Archive libxml2_patch.zip libxml2_patch"
+          del /f /q *.tar.* libxml2_patch.zip
 
-          :: ——— 构建 pkg-config ———
+          :: ——— 构建 pkg-config —— 应用 patch 后 NMake 编译 ———
           cd pkg-config-%PKG_CONFIG_VER%
-          :: 用手动下载的 patch 而非 Chocolatey
-          set PATH=%CD%\..\patchbin\bin;%PATH%
           patch -p1 < "%GITHUB_WORKSPACE%\pkgconfig.nmake.patch"
           set PATH=%INST%\bin;%PATH%
           nmake /f Makefile.vc CFG=release
@@ -76,33 +70,27 @@ jobs:
           cd ..
 
           :: ——— 构建 FreeType ———
-          md _build_ft
-          cd _build_ft
+          md _build_ft & cd _build_ft
           set PATH=%INST%\bin;%PATH%
           meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
-          cd ..
-          rmdir /s /q _build_ft
+          cd .. & rmdir /s /q _build_ft
 
           :: ——— 构建 libxml2 ———
-          md _build_libxml
-          cd _build_libxml
+          md _build_libxml & cd _build_libxml
           set PATH=%INST%\bin;%PATH%
           meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
-          cd ..
-          rmdir /s /q _build_libxml
+          cd .. & rmdir /s /q _build_libxml
 
-          :: ——— 构建 Pango ———
-          md _build_pango
-          cd _build_pango
+          :: —— 构建 Pango —— 
+          md _build_pango & cd _build_pango
           set PATH=%INST%\bin;%PATH%
           meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
           ninja install
-          cd ..
-          rmdir /s /q _build_pango
+          cd .. & rmdir /s /q _build_pango
 
-          :: ——— 安装 Rust & cargo-c ———
+          :: —— 安装 Rust & cargo-c —— 
           if exist %USERPROFILE%\.cargo\bin\rustup.exe (
             %USERPROFILE%\.cargo\bin\rustup update
           ) else (
@@ -112,12 +100,9 @@ jobs:
             %USERPROFILE%\.cargo\bin\cargo install cargo-c
           )
 
-          :: ——— 构建 librsvg ———
-          cd librsvg
-          md msvc-build
-          cd msvc-build
+          :: —— 构建 librsvg —— 
+          cd librsvg & md msvc-build & cd msvc-build
           set PATH=%INST%\bin;%USERPROFILE%\.cargo\bin;%PATH%
-
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
 
           if not "%DOWNGRADE_RUST_VERSION%"=="1" (
@@ -128,9 +113,7 @@ jobs:
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           )
 
-          ninja
-          ninja test
-          ninja install
+          ninja && ninja test && ninja install
 
       - name: Upload install folder
         uses: actions/upload-artifact@v4
