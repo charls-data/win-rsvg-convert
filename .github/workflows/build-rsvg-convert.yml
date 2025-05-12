@@ -212,6 +212,12 @@ jobs:
         # 修复 cairo-script-file.c 中的指针类型问题
         sed -i '191s/tmp_str->string, \&len,/tmp_str->string, (lzo_uint \*)\\&len,/' subprojects/cairo-1.18.0/util/cairo-script/cairo-script-file.c
 
+    - name: Fix Cairo DWrite font subpixel_order type
+      working-directory: librsvg
+      run: |
+        sed -i '273s/auto subpixel_order/cairo_subpixel_order_t subpixel_order/' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
+        sed -i 's/nullptr/NULL/g' subprojects/cairo-1.18.0/src/win32/cairo-dwrite-font.cpp
+
     - name: Build rsvg-convert.exe
       working-directory: librsvg
       run: ninja -C build
