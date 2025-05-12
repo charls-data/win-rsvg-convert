@@ -37,7 +37,6 @@ jobs:
         run: |
           meson --version
           cargo --version
-          where.exe cargo
 
       - name: Build gdk-pixbuf
         shell: cmd
@@ -74,6 +73,7 @@ jobs:
           copy /b release\x64\pkg-config.exe %INST%\bin
           nmake /f Makefile.vc CFG=release clean
           cd ..
+          where.exe pkg-config.exe
 
       - name: Build FreeType
         shell: cmd
@@ -123,9 +123,9 @@ jobs:
           md librsvg\msvc-build && cd librsvg\msvc-build
           set PATH=%INST%\bin;%USERPROFILE%\.cargo\bin;%PATH%
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
-          if not "%DOWNGRADE_RUST_VERSION%"=="1" (
+          if "%DOWNGRADE_RUST_VERSION%" == "1" (
             set RUST_DOWNGRADE_VER=1.82.0
-            rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
+            rustup install "%RUST_DOWNGRADE_VER%-%RUST_HOST%"
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER%
           ) else (
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
