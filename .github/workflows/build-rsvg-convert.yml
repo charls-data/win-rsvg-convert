@@ -201,8 +201,7 @@ jobs:
           -Dglib:tests=false \
           -Dpango:introspection=disabled \
           -Dpango:tests=false \
-          -Dglib:xattr=false \ 
-          -Dcpp_args="-std=c++11"
+          -Dglib:xattr=false
 
     - name: Apply Cairo LZO pointer-type patches
       working-directory: librsvg
