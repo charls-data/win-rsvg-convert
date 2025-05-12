@@ -155,7 +155,7 @@ jobs:
           ninja install
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: librsvg-install
           path: rsvg.ci.bin
