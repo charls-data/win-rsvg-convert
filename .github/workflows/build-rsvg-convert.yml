@@ -36,36 +36,20 @@ jobs:
         run: |
           pip3 install --upgrade --user "meson~=1.2"
 
-      - name: Global toolchain ENV
+      - name: Update Global ENV
         shell: cmd
         run: |
-          :: PATH
           echo %USERPROFILE%\AppData\Roaming\Python\Python39\Scripts>>%GITHUB_PATH%
           echo %USERPROFILE%\.cargo\bin>>%GITHUB_PATH%
           echo %INST%\bin>>%GITHUB_PATH%
-
-          :: Package info
-          echo "INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%">>%GITHUB_ENV%
-          echo "LIB=%PREFIX_LIB%;%LIB%">>%GITHUB_ENV%
           echo INST_PSX=%INST:\=/%>>%GITHUB_ENV%
-
-      - name: Check toolchain info
-        shell: cmd
-        run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-          echo "=== PATH ==="
-          echo %PATH%
-          echo "=== INCLUDE ==="
-          echo %INCLUDE%
-          echo "=== LIB ==="
-          echo %LIB%
-          echo "=== INST_PSX ==="
-          echo %INST_PSX%
 
       - name: Build gdk-pixbuf
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
           md _build_gdk_pixbuf && cd _build_gdk_pixbuf
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false -Dglycin=disabled
@@ -90,6 +74,8 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
           cd pkg-config-%PKG_CONFIG_VER%
           "C:\Program Files\Git\usr\bin\patch.exe" -p1 < "%WORKSPACE%\pkgconfig.nmake.patch"
           nmake /f Makefile.vc CFG=release
@@ -103,6 +89,8 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
           md _build_ft && cd _build_ft
           meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
@@ -112,6 +100,8 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
           md _build_libxml && cd _build_libxml
           meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
@@ -121,6 +111,8 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
           md _build_pango && cd _build_pango
           meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
@@ -131,6 +123,8 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
           rustup default stable-%RUST_HOST%
           if not exist %USERPROFILE%\.cargo\bin\cargo-cbuild.exe (
             cargo install cargo-c
@@ -140,9 +134,11 @@ jobs:
         shell: cmd
         run: |
           call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
+          set LIB=%PREFIX_LIB%;%LIB%
+          set PKG_CONFIG=%INST%\bin\pkg-config.exe
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
           md librsvg\msvc-build && cd librsvg\msvc-build
-          set PKG_CONFIG=%INST%\bin\pkg-config.exe
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
           if "%DOWNGRADE_RUST_VERSION%" == "1" (
             set RUST_DOWNGRADE_VER=1.82.0
