@@ -10,10 +10,11 @@ jobs:
     runs-on: windows-2025
 
     env:
+      # set this to 1 to downgrade the Rust version used for building librsvg
+      DOWNGRADE_RUST_VERSION: 1
+
       # single source of truth for the install prefix
       INST: ${{ github.workspace }}\rsvg.ci.bin
-      # INST with backslashes turned into forward slashes
-      INST_PSX: ${{ replace(github.workspace, '\\', '/') }}/rsvg.ci.bin
 
       # derive all of your include/lib paths from INST
       PREFIX_INC: ${{ github.workspace }}\rsvg.ci.bin\include
@@ -50,6 +51,9 @@ jobs:
           echo "PATH=%INST%\bin;%PATH%" >> $GITHUB_ENV
           echo "INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%" >> $GITHUB_ENV
           echo "LIB=%PREFIX_LIB%;%LIB%" >> $GITHUB_ENV
+
+          :: Compute INST_PSX by replacing backslashes with forward slashes
+          echo INST_PSX=%INST:\=/%>>%GITHUB_ENV%
 
       - name: Build gdk-pixbuf
         shell: cmd
@@ -138,5 +142,5 @@ jobs:
       - name: Upload install folder
         uses: actions/upload-artifact@v4
         with:
-          name: librsvg-install
+          name: librsvg-windows
           path: rsvg.ci.bin/**
