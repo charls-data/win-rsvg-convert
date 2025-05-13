@@ -45,6 +45,9 @@ jobs:
           echo INST_PSX=%INST:\=/%>>%GITHUB_ENV%
           echo "check rust host:"
           echo "[%RUST_HOST%]"
+          set RUST_DOWNGRADE_VER=1.82.0
+          echo "[%RUST_DOWNGRADE_VER%-%RUST_HOST%]"
+          rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
 
       - name: Build gdk-pixbuf
         shell: cmd
