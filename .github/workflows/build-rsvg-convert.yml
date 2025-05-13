@@ -1,5 +1,5 @@
 # .github/workflows/windows-librsvg.yml
-name: Build librsvg on Windows 2022
+name: Build librsvg on Windows 2025
 
 on:
   push:
@@ -10,14 +10,22 @@ jobs:
     runs-on: windows-2025
 
     env:
-      WORKSPACE: ${{ github.workspace }}
+      # single source of truth for the install prefix
       INST: ${{ github.workspace }}\rsvg.ci.bin
-      INST_PSX: ${{ github.workspace }}/rsvg.ci.bin
+      # INST with backslashes turned into forward slashes
+      INST_PSX: ${{ replace(env.INST, '\\', '/') }}
+
+      # derive all of your include/lib paths from INST
+      PREFIX_INC: ${{ env.INST }}\include
+      PREFIX_INC_GLIB: ${{ env.INST }}\include\glib-2.0
+      PREFIX_INC_GLIB_INC: ${{ env.INST }}\lib\glib-2.0\include
+      PREFIX_LIB: ${{ env.INST }}\lib
+
+      # version pins
       LIBXML2_VER: 2.12.6
       FREETYPE2_VER: 2.13.0
       PKG_CONFIG_VER: 0.29.2
       RUST_HOST: x86_64-pc-windows-msvc
-      MSYS2_BIN: C:\msys64\usr\bin
 
     steps:
       - name: Checkout source
@@ -33,24 +41,19 @@ jobs:
           echo %USERPROFILE%\AppData\Roaming\Python\Python39\Scripts>>%GITHUB_PATH%
           echo %USERPROFILE%\.cargo\bin>>%GITHUB_PATH%
 
-      - name: Verify Meson & Cargo
+      - name: Capture MSVC environment
         shell: cmd
         run: |
-          echo "Meson version:"
-          meson --version
-          echo "Cargo version:"
-          cargo --version
-          echo "patch path:"
-          where.exe patch
-          echo "pkg-config path:"
-          where.exe pkg-config
-          echo "tar path:"
-          where.exe tar
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+
+          :: Export the new PATH, INCLUDE and LIB globally
+          echo "PATH=%INST%\bin;%PATH%" >> $GITHUB_ENV
+          echo "INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%" >> $GITHUB_ENV
+          echo "LIB=%PREFIX_LIB%;%LIB%" >> $GITHUB_ENV
 
       - name: Build gdk-pixbuf
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
           md _build_gdk_pixbuf && cd _build_gdk_pixbuf
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false -Dglycin=disabled
@@ -74,22 +77,19 @@ jobs:
       - name: Build pkg-config
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd pkg-config-%PKG_CONFIG_VER%
           "C:\Program Files\Git\usr\bin\patch.exe" -p1 < "%WORKSPACE%\pkgconfig.nmake.patch"
-          set PATH=%INST%\bin;%PATH%
           nmake /f Makefile.vc CFG=release
           copy /b release\x64\pkg-config.exe %INST%\bin
           nmake /f Makefile.vc CFG=release clean
           cd ..
+          echo "pkg-config.exe path:"
           where.exe pkg-config.exe
 
       - name: Build FreeType
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           md _build_ft && cd _build_ft
-          set PATH=%INST%\bin;%PATH%
           meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
           cd .. && rmdir /s /q _build_ft
@@ -97,9 +97,7 @@ jobs:
       - name: Build libxml2
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           md _build_libxml && cd _build_libxml
-          set PATH=%INST%\bin;%PATH%
           meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
           ninja install
           cd .. && rmdir /s /q _build_libxml
@@ -107,10 +105,8 @@ jobs:
       - name: Build Pango
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
           md _build_pango && cd _build_pango
-          set PATH=%INST%\bin;%PATH%
           meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
           ninja install
           cd .. && rmdir /s /q _build_pango
@@ -118,7 +114,6 @@ jobs:
       - name: Ensure Rust toolchain & cargo-c
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           rustup default stable-%RUST_HOST%
           if not exist %USERPROFILE%\.cargo\bin\cargo-cbuild.exe (
             cargo install cargo-c
@@ -127,10 +122,8 @@ jobs:
       - name: Build librsvg
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
           md librsvg\msvc-build && cd librsvg\msvc-build
-          set PATH=%INST%\bin;%USERPROFILE%\.cargo\bin;%PATH%
           set PKG_CONFIG=%INST%\bin\pkg-config.exe
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
           if "%DOWNGRADE_RUST_VERSION%" == "1" (
