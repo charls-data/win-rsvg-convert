@@ -43,11 +43,6 @@ jobs:
           echo %USERPROFILE%\.cargo\bin>>%GITHUB_PATH%
           echo %INST%\bin>>%GITHUB_PATH%
           echo INST_PSX=%INST:\=/%>>%GITHUB_ENV%
-          echo "check rust host:"
-          echo "[%RUST_HOST%]"
-          set RUST_DOWNGRADE_VER=1.82.0
-          echo "[%RUST_DOWNGRADE_VER%-%RUST_HOST%]"
-          rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
 
       - name: Build gdk-pixbuf
         shell: cmd
@@ -127,13 +122,11 @@ jobs:
       - name: Ensure Rust toolchain & cargo-c
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-          set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
-          set LIB=%PREFIX_LIB%;%LIB%
-          rustup default stable-%RUST_HOST%
           if not exist %USERPROFILE%\.cargo\bin\cargo-cbuild.exe (
             cargo install cargo-c
           )
+          set RUST_DOWNGRADE_VER=1.82.0
+          rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
 
       - name: Build librsvg
         shell: cmd
@@ -146,8 +139,6 @@ jobs:
           md librsvg\msvc-build && cd librsvg\msvc-build
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
           if "%DOWNGRADE_RUST_VERSION%" == "1" (
-            set RUST_DOWNGRADE_VER=1.82.0
-            rustup install %RUST_DOWNGRADE_VER%-%RUST_HOST%
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER%
           ) else (
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
