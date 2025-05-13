@@ -13,13 +13,13 @@ jobs:
       # single source of truth for the install prefix
       INST: ${{ github.workspace }}\rsvg.ci.bin
       # INST with backslashes turned into forward slashes
-      INST_PSX: ${{ replace(env.INST, '\\', '/') }}
+      INST_PSX: ${{ replace(github.workspace, '\\', '/') }}/rsvg.ci.bin
 
       # derive all of your include/lib paths from INST
-      PREFIX_INC: ${{ env.INST }}\include
-      PREFIX_INC_GLIB: ${{ env.INST }}\include\glib-2.0
-      PREFIX_INC_GLIB_INC: ${{ env.INST }}\lib\glib-2.0\include
-      PREFIX_LIB: ${{ env.INST }}\lib
+      PREFIX_INC: ${{ github.workspace }}\rsvg.ci.bin\include
+      PREFIX_INC_GLIB: ${{ github.workspace }}\rsvg.ci.bin\include\glib-2.0
+      PREFIX_INC_GLIB_INC: ${{ github.workspace }}\rsvg.ci.bin\lib\glib-2.0\include
+      PREFIX_LIB: ${{ github.workspace }}\rsvg.ci.bin\lib
 
       # version pins
       LIBXML2_VER: 2.12.6
