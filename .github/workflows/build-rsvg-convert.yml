@@ -36,13 +36,29 @@ jobs:
       - name: Verify Meson & Cargo
         shell: cmd
         run: |
+          echo "Meson version:"
           meson --version
+          echo "Cargo version:"
           cargo --version
+          echo "patch path:"
           where.exe patch
+          echo "pkg-config path:"
           where.exe pkg-config
+          echo "tar path:"
           where.exe tar
 
-      - name: Fetch & unpack pkg-config, FreeType, libxml2
+      - name: Build gdk-pixbuf
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
+          md _build_gdk_pixbuf && cd _build_gdk_pixbuf
+          meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false -Dglycin=disabled
+          ninja install
+          cd .. && rmdir /s /q _build_gdk_pixbuf
+          copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
+
+      - name: Fetch & unpack pkg-config, freetype, libxml2
         shell: cmd
         run: |
           curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config.tar.gz
@@ -67,17 +83,6 @@ jobs:
           nmake /f Makefile.vc CFG=release clean
           cd ..
           where.exe pkg-config.exe
-
-      - name: Build gdk-pixbuf
-        shell: cmd
-        run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
-          git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
-          md _build_gdk_pixbuf && cd _build_gdk_pixbuf
-          meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false
-          ninja install
-          cd .. && rmdir /s /q _build_gdk_pixbuf
-          copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
       - name: Build FreeType
         shell: cmd
