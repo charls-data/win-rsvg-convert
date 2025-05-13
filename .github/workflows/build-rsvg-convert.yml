@@ -48,9 +48,9 @@ jobs:
           curl -L https://pkgconfig.freedesktop.org/releases/pkg-config-%PKG_CONFIG_VER%.tar.gz -o pkg-config.tar.gz
           curl -L https://downloads.sourceforge.net/freetype/freetype-%FREETYPE2_VER%.tar.xz -o freetype.tar.xz
           curl -L https://download.gnome.org/sources/libxml2/2.12/libxml2-%LIBXML2_VER%.tar.xz -o libxml2.tar.xz
-          "%MSYS2_BIN%\tar.exe" -xf pkg-config.tar.gz
-          "%MSYS2_BIN%\tar.exe" -xf freetype.tar.xz
-          "%MSYS2_BIN%\tar.exe" -xf libxml2.tar.xz
+          tar -xf pkg-config.tar.gz
+          tar -xf freetype.tar.xz
+          tar -xf libxml2.tar.xz
           curl -L https://wrapdb.mesonbuild.com/v2/libxml2_%LIBXML2_VER%-1/get_patch -o libxml2_patch.zip
           powershell -Command "Expand-Archive libxml2_patch.zip libxml2_patch"
           del /f /q pkg-config.tar.gz freetype.tar.xz libxml2.tar.xz libxml2_patch.zip
