@@ -58,12 +58,23 @@ jobs:
           cd %INST%\lib
           echo "lib path contents:"
           dir
-          dir pkgconfig
-          echo "zlib.pc contents:"
-          type pkgconfig\zlib.pc
-          echo "glib-2.0.pc contents:"
-          type pkgconfig\glib-2.0.pc
-          copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
+          copy /b %INST%\lib\libffi.a               %INST%\lib\ffi.lib
+          copy /b %INST%\lib\libgdk_pixbuf-2.0.a    %INST%\lib\gdk_pixbuf-2.0.lib
+          copy /b %INST%\lib\libgio-2.0.a           %INST%\lib\gio-2.0.lib
+          copy /b %INST%\lib\libgirepository-2.0.a  %INST%\lib\girepository-2.0.lib
+          copy /b %INST%\lib\libglib-2.0.a          %INST%\lib\glib-2.0.lib
+          copy /b %INST%\lib\libgmodule-2.0.a       %INST%\lib\gmodule-2.0.lib
+          copy /b %INST%\lib\libgobject-2.0.a       %INST%\lib\gobject-2.0.lib
+          copy /b %INST%\lib\libgthread-2.0.a       %INST%\lib\gthread-2.0.lib
+          copy /b %INST%\lib\libintl.a               %INST%\lib\intl.lib
+          copy /b %INST%\lib\libjpeg.a               %INST%\lib\jpeg.lib
+          copy /b %INST%\lib\libpcre2-16.a           %INST%\lib\pcre2-16.lib
+          copy /b %INST%\lib\libpcre2-32.a           %INST%\lib\pcre2-32.lib
+          copy /b %INST%\lib\libpcre2-8.a            %INST%\lib\pcre2-8.lib
+          copy /b %INST%\lib\libpcre2-posix.a        %INST%\lib\pcre2-posix.lib
+          copy /b %INST%\lib\libpng16.a              %INST%\lib\png16.lib
+          copy /b %INST%\lib\libz.a                  %INST%\lib\z.lib
+          copy /b %INST%\lib\libz.a                 %INST%\lib\zlib.lib
 
       - name: Fetch & unpack pkg-config, freetype, libxml2
         shell: cmd
@@ -103,6 +114,9 @@ jobs:
           meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_ft
+          cd %INST%\lib
+          echo "lib path contents:"
+          dir
 
       - name: Build libxml2
         shell: cmd
@@ -114,6 +128,9 @@ jobs:
           meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_libxml
+          cd %INST%\lib
+          echo "lib path contents:"
+          dir
 
       - name: Build Pango
         shell: cmd
@@ -126,6 +143,9 @@ jobs:
           meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_pango
+          cd %INST%\lib
+          echo "lib path contents:"
+          dir
 
       - name: Ensure Rust toolchain & cargo-c
         shell: cmd
