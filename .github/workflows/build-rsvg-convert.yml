@@ -178,8 +178,8 @@ jobs:
           set LIB=%PREFIX_LIB%;%LIB%
           set PKG_CONFIG=%INST%\bin\pkg-config.exe
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
+          copy /Y "%GITHUB_WORKSPACE%\rsvg-meson.build" "librsvg\rsvg\meson.build"
           md librsvg\msvc-build && cd librsvg\msvc-build
-          if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
           if "%DOWNGRADE_RUST_VERSION%" == "1" (
             meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER% -Ddefault_library=static
           ) else (
