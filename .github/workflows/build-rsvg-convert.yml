@@ -59,6 +59,10 @@ jobs:
           echo "lib path contents:"
           dir
           dir pkgconfig
+          echo "zlib.pc contents:"
+          type pkgconfig\zlib.pc
+          echo "glib-2.0.pc contents:"
+          type pkgconfig\glib-2.0.pc
           copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
       - name: Fetch & unpack pkg-config, freetype, libxml2
