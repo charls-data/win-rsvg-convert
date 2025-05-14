@@ -55,6 +55,10 @@ jobs:
           meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false -Dglycin=disabled -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_gdk_pixbuf
+          cd %INST%\lib
+          echo "lib path contents:"
+          dir
+          dir pkgconfig
           copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
 
       - name: Fetch & unpack pkg-config, freetype, libxml2
