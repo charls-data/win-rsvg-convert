@@ -253,7 +253,7 @@ if get_option('default_library') in ['static', 'both']
   librsvg_lib = custom_target(
     'rsvg-2-static',
     input: librsvg_c_lib,
-    output: '@0@rsvg-@1@.@2@'.format(lib_prefix, librsvg_api_major, 'a'),
+    output: '@0@rsvg-@1@.@2@'.format('', librsvg_api_major, 'lib'),
     command: [
       python,
       '-c',
@@ -263,7 +263,6 @@ if get_option('default_library') in ['static', 'both']
     ],
     install: true,
     install_dir: get_option('libdir'),
-    install_filename: 'rsvg-@0@.lib'.format(librsvg_api_major),
   )
   librsvg_dep_args += ['-DRSVG_STATIC']
 
