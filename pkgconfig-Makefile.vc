@@ -58,7 +58,7 @@ LDFLAGS = $(LDFLAGS_BASE) /opt:ref /LTCG
 !endif
 
 pkg_config_LIBS = glib-2.0.lib intl.lib ws2_32.lib winmm.lib
--lintl -lws2_32 -lwinmm
+
 {}.c{$(CFG)\$(PLAT)\pkg-config\}.obj::
 	$(CC) $(pkg_config_CFLAGS) /Fo$(CFG)\$(PLAT)\pkg-config\ /c @<<
 $<
