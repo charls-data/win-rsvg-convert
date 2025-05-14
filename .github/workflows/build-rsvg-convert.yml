@@ -118,6 +118,7 @@ jobs:
           cd %INST%\lib
           echo "lib path contents:"
           dir
+          copy /b %INST%\lib\libfreetype.a             %INST%\lib\freetype.lib
 
       - name: Build libxml2
         shell: cmd
@@ -132,6 +133,7 @@ jobs:
           cd %INST%\lib
           echo "lib path contents:"
           dir
+          copy /b %INST%\lib\libxml2.a                 %INST%\lib\xml2.lib
 
       - name: Build Pango
         shell: cmd
@@ -147,6 +149,17 @@ jobs:
           cd %INST%\lib
           echo "lib path contents:"
           dir
+          copy /b %INST%\lib\libcairo-gobject.a              %INST%\lib\cairo-gobject.lib
+          copy /b %INST%\lib\libcairo-script-interpreter.a   %INST%\lib\cairo-script-interpreter.lib
+          copy /b %INST%\lib\libcairo.a                      %INST%\lib\cairo.lib
+          copy /b %INST%\lib\libfribidi.a                    %INST%\lib\fribidi.lib
+          copy /b %INST%\lib\libharfbuzz-gobject.a           %INST%\lib\harfbuzz-gobject.lib
+          copy /b %INST%\lib\libharfbuzz-gobject.a           %INST%\lib\harfbuzz-gobject.lib
+          copy /b %INST%\lib\libharfbuzz.a                   %INST%\lib\harfbuzz.lib
+          copy /b %INST%\lib\libpango-1.0.a                  %INST%\lib\pango-1.0.lib
+          copy /b %INST%\lib\libpangocairo-1.0.a             %INST%\lib\pangocairo-1.0.lib
+          copy /b %INST%\lib\libpangowin32-1.0.a             %INST%\lib\pangowin32-1.0.lib
+          copy /b %INST%\lib\libpixman-1.a                   %INST%\lib\pixman-1.lib
 
       - name: Ensure Rust toolchain & cargo-c
         shell: cmd
