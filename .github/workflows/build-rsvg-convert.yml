@@ -96,7 +96,8 @@ jobs:
           set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
           set LIB=%PREFIX_LIB%;%LIB%
           cd pkg-config-%PKG_CONFIG_VER%
-          "C:\Program Files\Git\usr\bin\patch.exe" -p1 < "%GITHUB_WORKSPACE%\pkgconfig.nmake.patch"
+          copy /Y "%GITHUB_WORKSPACE%\pkgconfig-Makefile.vc" "Makefile.vc"
+
           nmake /f Makefile.vc CFG=release
           copy /b release\x64\pkg-config.exe %INST%\bin
           nmake /f Makefile.vc CFG=release clean
