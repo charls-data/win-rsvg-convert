@@ -52,7 +52,7 @@ jobs:
           set LIB=%PREFIX_LIB%;%LIB%
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
           md _build_gdk_pixbuf && cd _build_gdk_pixbuf
-          meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false -Dglycin=disabled
+          meson setup ..\gdk-pixbuf --buildtype=release --prefix=%INST_PSX% -Dman=false -Dglycin=disabled -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_gdk_pixbuf
           copy /b %INST%\lib\z.lib %INST%\lib\zlib.lib
@@ -92,7 +92,7 @@ jobs:
           set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
           set LIB=%PREFIX_LIB%;%LIB%
           md _build_ft && cd _build_ft
-          meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
+          meson setup ..\freetype-%FREETYPE2_VER% --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_ft
 
@@ -103,7 +103,7 @@ jobs:
           set INCLUDE=%PREFIX_INC_GLIB%;%PREFIX_INC_GLIB_INC%;%PREFIX_INC%;%INCLUDE%
           set LIB=%PREFIX_LIB%;%LIB%
           md _build_libxml && cd _build_libxml
-          meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
+          meson setup ..\libxml2-%LIBXML2_VER% --buildtype=release --prefix=%INST_PSX% -Diconv=disabled --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_libxml
 
@@ -115,7 +115,7 @@ jobs:
           set LIB=%PREFIX_LIB%;%LIB%
           git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
           md _build_pango && cd _build_pango
-          meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig
+          meson setup ..\pango --buildtype=release --prefix=%INST_PSX% -Dfontconfig=disabled --pkg-config-path=%INST%\lib\pkgconfig -Ddefault_library=static
           ninja install
           cd .. && rmdir /s /q _build_pango
 
@@ -139,9 +139,9 @@ jobs:
           md librsvg\msvc-build && cd librsvg\msvc-build
           if exist %INST%\lib\libpcre2-8.a copy /b %INST%\lib\libpcre2-8.a %INST%\lib\pcre2-8.lib
           if "%DOWNGRADE_RUST_VERSION%" == "1" (
-            meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER%
+            meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Dtriplet=%RUST_HOST% -Drustc-version=%RUST_DOWNGRADE_VER% -Ddefault_library=static
           ) else (
-            meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST%
+            meson setup .. --buildtype=release --prefix=%INST_PSX% --pkg-config-path=%INST%\lib\pkgconfig --cmake-prefix-path=%INST% -Ddefault_library=static
           )
           ninja && ninja install
 
