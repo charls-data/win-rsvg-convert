@@ -27,8 +27,11 @@ apk add --no-cache \
   pixman-dev \
   gdk-pixbuf-dev \
   libressl-dev \
+  ca-certificates \
   zlib-dev  \
   zlib-static
+
+update-ca-certificates
 
 # 3. Install Rustup and add MUSL target
 if [ ! -x "$(command -v rustup)" ]; then
@@ -53,6 +56,7 @@ fi
 
 # 6. Configure Meson for static build
 meson setup build \
+  --buildtype=release \
   --default-library=static \
   -Dtriplet=x86_64-unknown-linux-musl \
   -Dtests=false \
