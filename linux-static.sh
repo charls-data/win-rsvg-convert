@@ -14,7 +14,6 @@ apk add --no-cache \
   curl \
   git \
   musl-dev \
-  musl-tools \
   libunwind-dev \
   glib-dev \
   cairo-dev \
@@ -24,7 +23,7 @@ apk add --no-cache \
   pixman-dev \
   gdk-pixbuf-dev \
   openssl-dev \
-  zlib-dev
+  zlib-dev  # Ensure zlib static library is available for -lz linking
 
 # 2. Install Rustup and add MUSL target
 if [ ! -x "$(command -v rustup)" ]; then
