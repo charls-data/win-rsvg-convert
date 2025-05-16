@@ -21,6 +21,7 @@ $env:PKG_CONFIG_VER = '0.29.2'
 
 # Preference
 $ErrorActionPreference = 'Stop'
+$esc = [char]27
 
 # =============================================================================
 #  Install Meson
@@ -46,14 +47,15 @@ $env:PATH = "$env:USERPROFILE\AppData\Roaming\Python\Python39\Scripts;$env:PATH"
 $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
-$esc = [char]27
-Write-Output "${esc}`e[44;37m==============================${esc}`e[0m"
-Write-Host "Environment Variables:" -ForegroundColor White -BackgroundColor Blue
+Write-Host ""
+Write-Output "${esc}`e[44;97m=============================="
+Write-Host "Environment Variables:${esc}`e[0m"
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
 Write-Host "LIB: $env:LIB"
 Write-Host "INST_PSX: $env:INST_PSX"
-Write-Host "==============================`n" -ForegroundColor White -BackgroundColor Blue
+Write-Host "${esc}`e[44;97m==============================${esc}`e[0m"
+Write-Host ""
 hello
 # =============================================================================
 #  Build gdk-pixbuf
