@@ -49,7 +49,7 @@ $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
 Write-Host ""
-Write-Output "${DeepBlueWhite}=============================="
+Write-Host "${DeepBlueWhite}=============================="
 Write-Host "${DeepBlueWhite}Environment Variables:"
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
