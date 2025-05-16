@@ -42,6 +42,9 @@ if [ ! -x "$(command -v rustup)" ]; then
 fi
 export PATH="$HOME/.cargo/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
+if ! command -v cargo-cbuild >/dev/null 2>&1; then
+  cargo install cargo-c
+fi
 
 # 4. setup build
 meson setup build \
