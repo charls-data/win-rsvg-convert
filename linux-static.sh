@@ -37,6 +37,15 @@ if [ ! -x "$(command -v rustup)" ]; then
 fi
 export PATH="$CARGO_HOME/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
+
+# 2.1 Copy system libz.a into Rust MUSL sysroot to satisfy -lz
+SYSROOT="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-musl/lib"
+if [ -f /usr/lib/libz.a ]; then
+  cp /usr/lib/libz.a "$SYSROOT/"
+else
+  echo "Warning: /usr/lib/libz.a not found, -lz linking may fail" >&2
+fi
+
 # Ensure cargo-c (for cargo cbuild) is available
 if ! command -v cargo-cbuild >/dev/null 2>&1; then
   cargo install cargo-c
