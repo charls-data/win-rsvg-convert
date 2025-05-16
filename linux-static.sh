@@ -24,10 +24,9 @@ sudo apt-get install -y \
 # 2. librsvg source
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
-sed -i '1i\
-[package]\n\
-name = "ci"\n\
-version = "0.0.0"\n' ci/Cargo.toml
+if ! grep -q '^version' ci/Cargo.toml; then
+  sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
+fi
 
 # 3. rust target
 rustup target add x86_64-unknown-linux-musl
