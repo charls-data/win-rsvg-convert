@@ -18,7 +18,7 @@ jobs:
           $yellow = "`e[33m"
           $reset  = "`e[0m"
 
-          Write-Host "`e[44;37m`n==============================`e[0m"
+          Write-Host "[char]27`e[44;37m`n==============================`e[0m"
 
       - name: Checkout source
         uses: actions/checkout@v3
