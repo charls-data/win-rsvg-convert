@@ -8,6 +8,8 @@ jobs:
   build-static:
     name: Build rsvg-convert (static)
     runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
 
     steps:
       - name: Checkout source

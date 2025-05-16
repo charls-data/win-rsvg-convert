@@ -1,25 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 1. install dependencies
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential \
-  meson \
-  ninja-build \
-  pkg-config \
-  rustc \
-  cargo \
-  cargo-c \
-  musl-tools \
-  libglib2.0-dev \
-  libcairo2-dev \
-  libpango1.0-dev \
-  libxml2-dev \
-  libfreetype6-dev \
-  libpixman-1-dev \
-  gdk-pixbuf2.0-dev \
-  libunwind-dev
+OS=""
+if [ -f /etc/os-release ]; then
+  . /etc/os-release
+  OS=$ID
+fi
+
+if [ "$OS" = "alpine" ]; then
+  apk update
+  apk add --no-cache \
+    build-base meson ninja pkgconfig \
+    bash curl musl-dev musl-utils \
+    libunwind-dev \
+    glib-dev cairo-dev pango-dev \
+    libxml2-dev freetype-dev pixman-dev \
+    gdk-pixbuf-dev
+elif [ -x "$(command -v apt-get)" ]; then
+  sudo apt-get update
+  sudo apt-get install -y \
+    build-essential meson ninja-build pkg-config \
+    rustc cargo cargo-c \
+    curl musl-tools libunwind-dev \
+    libglib2.0-dev libcairo2-dev libpango1.0-dev \
+    libxml2-dev libfreetype6-dev libpixman-1-dev \
+    gdk-pixbuf2.0-dev
+else
+  echo "Unsupported OS: $OS" >&2
+  exit 1
+fi
 
 # 2. librsvg source
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
