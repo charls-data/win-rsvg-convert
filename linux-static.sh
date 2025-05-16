@@ -59,6 +59,20 @@ if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
 
+# 5. Vendor and build C dependencies via Meson wraps (avoid system libs)
+# Ensure subprojects directory exists
+mkdir -p subprojects
+# Install wraps for key C libraries
+meson wrap install glib --destdir=subprojects
+meson wrap install cairo --destdir=subprojects
+meson wrap install pango --destdir=subprojects
+meson wrap install pixman --destdir=subprojects
+meson wrap install gdk-pixbuf --destdir=subprojects
+meson wrap install fontconfig --destdir=subprojects
+meson wrap install expat --destdir=subprojects
+meson wrap install freetype --destdir=subprojects
+meson wrap install zlib --destdir=subprojects
+
 # 6. Configure Meson for static build
 meson setup build \
   --wrap-mode=forcefallback \
