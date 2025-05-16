@@ -15,7 +15,8 @@ if [ "$OS" = "alpine" ]; then
     libunwind-dev git \
     glib-dev cairo-dev pango-dev \
     libxml2-dev freetype-dev pixman-dev \
-    gdk-pixbuf-dev
+    gdk-pixbuf-dev \
+    rustc cargo cargo-c
 elif [ -x "$(command -v apt-get)" ]; then
   sudo apt-get update
   sudo apt-get install -y \
