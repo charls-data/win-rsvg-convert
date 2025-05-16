@@ -257,14 +257,14 @@ Copy-Item -Path "patches\rsvg-meson.build" -Destination "librsvg\rsvg\meson.buil
 md librsvg\msvc-build && cd librsvg\msvc-build
 meson setup .. `
     --buildtype=release `
-    --prefix=${env:INST_PSX} `
-    --pkg-config-path=${env:INST}\lib\pkgconfig `
-    --cmake-prefix-path=${env:INST} `
-    -Dtriplet=${env:RUST_HOST} `
-    -Drustc-version=${env:RUST_VER} `
+    --prefix="$env:INST_PSX" `
+    --pkg-config-path="$env:INST\lib\pkgconfig" `
+    --cmake-prefix-path="$env:INST" `
+    -Dtriplet="$env:RUST_HOST" `
+    -Drustc-version="$env:RUST_VER" `
     -Ddefault_library=static
 
-& ninja
-& ninja install
+ninja
+ninja install
 Write-Host "${DeepBlueWhite}=============================="
 Write-Host ""

@@ -22,3 +22,31 @@ jobs:
         with:
           name: librsvg-windows
           path: rsvg.ci.bin/**
+
+      - name: Compress rsvg-convert.exe
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path rsvg.ci.bin/bin/rsvg-convert.exe `
+            -DestinationPath rsvg.ci.bin/bin/win-static-x64.zip
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name:     v${{ github.run_number }}
+          release_name: rsvg-convert ${{ github.run_number }}
+          draft:        false
+          prerelease:   false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url:         ${{ steps.create_release.outputs.upload_url }}
+          asset_path:         rsvg.ci.bin/bin/win-static-x64.zip
+          asset_name:         win-static-x64.zip
+          asset_content_type: application/zip
