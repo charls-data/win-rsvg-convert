@@ -49,13 +49,13 @@ $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
 Write-Host ""
-Write-Output "$DeepBlueWhite=============================="
-Write-Host "${esc}`e[48;2;0;0;139m$esc[38;2;255;255;255mEnvironment Variables:"
+Write-Output "${DeepBlueWhite}=============================="
+Write-Host "${DeepBlueWhite}Environment Variables:"
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
 Write-Host "LIB: $env:LIB"
 Write-Host "INST_PSX: $env:INST_PSX"
-Write-Host "${esc}`e[44;97m==============================${esc}`e[0m"
+Write-Host "${DeepBlueWhite}=============================="
 Write-Host ""
 hello
 # =============================================================================
