@@ -39,7 +39,7 @@ jobs:
         id: get_rc_version
         shell: pwsh
         run: |
-          $output = & .\rsvg.ci.bin\bin\rsvg-convert.exe
+          $output = & .\rsvg.ci.bin\bin\rsvg-convert.exe -v
           # get version number
           if ($output -match 'version\s+(\d+\.\d+\.\d+)') {
             $ver = $Matches[1]
