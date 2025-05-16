@@ -27,6 +27,7 @@ apk add --no-cache \
   pixman-dev \
   gdk-pixbuf-dev \
   libressl-dev \
+  openssl \
   ca-certificates \
   zlib-dev  \
   zlib-static
