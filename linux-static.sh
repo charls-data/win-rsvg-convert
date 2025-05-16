@@ -27,7 +27,8 @@ apk add --no-cache \
   pixman-dev \
   gdk-pixbuf-dev \
   openssl-dev \
-  zlib-dev  # provide libz.a for static linking
+  zlib-dev  \
+  zlib-static
 
 # 2. Verify static zlib library presence and configure linker path
 ZLIB_A=""
