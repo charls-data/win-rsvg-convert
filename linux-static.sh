@@ -2,6 +2,12 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
+# Ensure $HOME matches euid home (root) to avoid rustup warnings
+export HOME=/root
+export RUSTUP_HOME="$HOME/.rustup"
+export CARGO_HOME="$HOME/.cargo"
+export PATH="$CARGO_HOME/bin:$PATH"
+
 # This script performs a fully static build of rsvg-convert on Alpine Linux
 
 # 1. Install build tools and static library dependencies
@@ -28,10 +34,8 @@ apk add --no-cache \
 # 2. Install Rustup and add MUSL target
 if [ ! -x "$(command -v rustup)" ]; then
   curl https://sh.rustup.rs -sSf | sh -s -- -y
-  export PATH="$HOME/.cargo/bin:$PATH"
-else
-  export PATH="$HOME/.cargo/bin:$PATH"
 fi
+export PATH="$CARGO_HOME/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
 # Ensure cargo-c (for cargo cbuild) is available
 if ! command -v cargo-cbuild >/dev/null 2>&1; then
