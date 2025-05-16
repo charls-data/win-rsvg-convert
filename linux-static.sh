@@ -70,7 +70,7 @@ meson wrap install pixman
 meson wrap install gdk-pixbuf
 meson wrap install fontconfig
 meson wrap install expat
-meson wrap install freetype
+git clone --depth 1 https://github.com/freetype/freetype.git subprojects/freetype
 meson wrap install zlib
 
 # 6. Configure Meson for static build
