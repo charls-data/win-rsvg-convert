@@ -5,7 +5,7 @@ set -euo pipefail
 # Fully static build of rsvg-convert: build all C deps from source under musl + static libs
 
 # 1. Install essential toolchain
-APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl zlib-dev zlib-static"
+APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates libressl-dev zlib-dev zlib-static"
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
