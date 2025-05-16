@@ -21,7 +21,9 @@ $env:PKG_CONFIG_VER = '0.29.2'
 
 # Preference
 $ErrorActionPreference = 'Stop'
-$Host.UI.SupportsVirtualTerminal = $true
+$fgWhite = $PSStyle.Foreground.White
+$bgBlue  = $PSStyle.Background.Blue
+$reset   = $PSStyle.Reset
 
 # =============================================================================
 #  Install Meson
@@ -47,14 +49,14 @@ $env:PATH = "$env:USERPROFILE\AppData\Roaming\Python\Python39\Scripts;$env:PATH"
 $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
-Write-Host "`n==============================" -ForegroundColor White -BackgroundColor Blue
+Write-Output "$bgBlue$fgWhite`n==============================$reset"
 Write-Host "Environment Variables:" -ForegroundColor White -BackgroundColor Blue
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
 Write-Host "LIB: $env:LIB"
 Write-Host "INST_PSX: $env:INST_PSX"
 Write-Host "==============================`n" -ForegroundColor White -BackgroundColor Blue
-
+hello
 # =============================================================================
 #  Build gdk-pixbuf
 # =============================================================================
