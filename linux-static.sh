@@ -15,13 +15,11 @@ if [ "$OS" = "alpine" ]; then
     libunwind-dev git \
     glib-dev cairo-dev pango-dev \
     libxml2-dev freetype-dev pixman-dev \
-    gdk-pixbuf-dev \
-    rustc cargo cargo-c
+    gdk-pixbuf-dev
 elif [ -x "$(command -v apt-get)" ]; then
   sudo apt-get update
   sudo apt-get install -y \
     build-essential meson ninja-build pkg-config \
-    rustc cargo cargo-c \
     curl musl-tools libunwind-dev \
     libglib2.0-dev libcairo2-dev libpango1.0-dev \
     libxml2-dev libfreetype6-dev libpixman-1-dev \
@@ -39,6 +37,10 @@ if ! grep -q '^version' ci/Cargo.toml; then
 fi
 
 # 3. rust target
+if [ ! -x "$(command -v rustup)" ]; then
+  curl https://sh.rustup.rs -sSf | sh -s -- -y
+fi
+export PATH="$HOME/.cargo/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
 
 # 4. setup build
