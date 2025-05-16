@@ -2,13 +2,13 @@
 #  ENV
 # =============================================================================
 # Path
-$env:rpath = $env:github.workspace
-$env:INST = "$($env:rpath)\rsvg.ci.bin"
+$env:rpath = $env:GITHUB_WORKSPACE
+$env:INST = "${env:rpath}\rsvg.ci.bin"
 $env:INST_PSX = $env:INST.Replace('\','/')
-$env:EINC = "$($env:INST)\include"
-$env:EINC_GLIB = "$($env:INST)\include\glib-2.0"
-$env:EINC_GLIB_INC = "$($env:INST)\include\glib-2.0\include"
-$env:ELIB = "$($env:INST)\lib"
+$env:EINC = "${env:INST}\include"
+$env:EINC_GLIB = "${env:INST}\include\glib-2.0"
+$env:EINC_GLIB_INC = "${env:INST}\include\glib-2.0\include"
+$env:ELIB = "${env:INST}\lib"
 
 # Rust Version
 $env:RUST_DOWNGRADE_VER = '1.82.0'
@@ -55,7 +55,7 @@ Write-Host "INST_PSX: $env:INST_PSX"
 #  Build gdk-pixbuf
 # =============================================================================
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
-md _build_pango && cd _build_pango
+md _build_gdk_pixbuf && cd _build_gdk_pixbuf
 meson setup ..\gdk-pixbuf `
     --buildtype=release `
     --prefix=$env:INST_PSX `
