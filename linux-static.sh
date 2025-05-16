@@ -2,46 +2,53 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
-# 1. 安装所有构建依赖（Ubuntu）
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential \
+# This script performs a fully static build of rsvg-convert on Alpine Linux
+
+# 1. Install build tools and static library dependencies
+apk update
+apk add --no-cache \
+  build-base \
   meson \
-  ninja-build \
-  pkg-config \
+  ninja \
+  pkgconfig \
   curl \
+  git \
+  musl-dev \
   musl-tools \
   libunwind-dev \
-  libglib2.0-dev \
-  libcairo2-dev \
-  libpango1.0-dev \
+  glib-dev \
+  cairo-dev \
+  pango-dev \
   libxml2-dev \
-  libfreetype6-dev \
-  libpixman-1-dev \
-  gdk-pixbuf2.0-dev \
-  libssl-dev \
-  zlib1g-dev \
-  git
+  freetype-dev \
+  pixman-dev \
+  gdk-pixbuf-dev \
+  openssl-dev \
+  zlib-dev
 
-# 2. 安装 Rustup 并设置环境，安装 MUSL 目标和 cargo-c
+# 2. Install Rustup and add MUSL target
 if [ ! -x "$(command -v rustup)" ]; then
   curl https://sh.rustup.rs -sSf | sh -s -- -y
-  . "$HOME/.cargo/env"
+  export PATH="$HOME/.cargo/bin:$PATH"
+else
+  export PATH="$HOME/.cargo/bin:$PATH"
 fi
-export PATH="$HOME/.cargo/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
-cargo install cargo-c
+# Ensure cargo-c (for cargo cbuild) is available
+if ! command -v cargo-cbuild >/dev/null 2>&1; then
+  cargo install cargo-c
+fi
 
-# 3. 克隆 librsvg 源码并进入目录
-git clone https://gitlab.gnome.org/GNOME/librsvg.git
+# 3. Clone librsvg and enter source directory
+git clone --depth 1 https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 
-# 4. 修补 ci/Cargo.toml：在 [package] 段后插入 version 字段（若不存在）
+# 4. Patch ci/Cargo.toml: insert version in [package] if missing
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
 
-# 5. 使用 Meson 配置全静态构建
+# 5. Configure Meson for static build
 meson setup build \
   --default-library=static \
   -Dtriplet=x86_64-unknown-linux-musl \
@@ -50,9 +57,9 @@ meson setup build \
   -Dintrospection=disabled \
   -Dvala=disabled
 
-# 6. 编译并去除符号
+# 6. Compile and strip symbols
 ninja -C build
 strip build/rsvg-convert
 
-# 7. （可选）验证静态链接
+# 7. Optional: verify the binary is static
 ldd build/rsvg-convert || true
