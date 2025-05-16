@@ -7,15 +7,17 @@ if [ -f /etc/os-release ]; then
   OS=$ID
 fi
 
+# 1. Install C/C++ toolchain, static library deps, and OpenSSL dev
 if [ "$OS" = "alpine" ]; then
   apk update
   apk add --no-cache \
     build-base meson ninja pkgconfig \
-    bash curl musl-dev musl-utils \
-    libunwind-dev git \
+    curl musl-dev musl-utils \
+    libunwind-dev \
     glib-dev cairo-dev pango-dev \
     libxml2-dev freetype-dev pixman-dev \
-    gdk-pixbuf-dev
+    gdk-pixbuf-dev \
+    openssl-dev
 elif [ -x "$(command -v apt-get)" ]; then
   sudo apt-get update
   sudo apt-get install -y \
@@ -23,7 +25,8 @@ elif [ -x "$(command -v apt-get)" ]; then
     curl musl-tools libunwind-dev \
     libglib2.0-dev libcairo2-dev libpango1.0-dev \
     libxml2-dev libfreetype6-dev libpixman-1-dev \
-    gdk-pixbuf2.0-dev
+    gdk-pixbuf2.0-dev \
+    libssl-dev
 else
   echo "Unsupported OS: $OS" >&2
   exit 1
