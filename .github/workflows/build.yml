@@ -9,17 +9,6 @@ jobs:
     runs-on: windows-2025
 
     steps:
-      - name: Colorful output via ANSI
-        shell: pwsh
-        run: |
-          # 定义一些常用颜色
-          $red    = "`e[31m"
-          $green  = "`e[32m"
-          $yellow = "`e[33m"
-          $reset  = "`e[0m"
-
-          Write-Host "[char]27`e[44;37m`n==============================`e[0m"
-
       - name: Checkout source
         uses: actions/checkout@v3
 
