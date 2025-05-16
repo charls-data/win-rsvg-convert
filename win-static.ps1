@@ -30,8 +30,12 @@ pip3 install --upgrade --user "meson~=1.2"
 # =============================================================================
 #  Setup MSVC Env and update ENVs
 # =============================================================================
-& '$env:ProgramFiles\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Launch-VsDevShell.ps1' `
-    -HostArch amd64 -Arch amd64 -SkipAutomaticLocation
+$vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+    -latest -products * `
+    -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+    -property installationPath
+$vsScript = Join-Path $vsPath 'Common7\Tools\Launch-VsDevShell.ps1'
+& $vsScript -HostArch amd64 -Arch amd64 -SkipAutomaticLocation
 
 # Update INCLUDE and LIB (will reset by msvc script)
 $env:INCLUDE = "$env:EINC_GLIB;$env:EINC_GLIB_INC;$env:EINC;$env:INCLUDE"
@@ -45,6 +49,7 @@ $env:PATH = "$env:INST\bin;$env:PATH"
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
 Write-Host "LIB: $env:LIB"
+Write-Host "INST_PSX: $env:INST_PSX"
 
 # =============================================================================
 #  Build gdk-pixbuf
