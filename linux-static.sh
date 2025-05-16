@@ -76,7 +76,6 @@ meson wrap install zlib
 # 6. Configure Meson for static build
 meson setup build \
   --wrap-mode=forcefallback \
-  --subproject-dir=subprojects \
   --buildtype=release \
   --default-library=static \
   -Dtriplet=x86_64-unknown-linux-musl \
