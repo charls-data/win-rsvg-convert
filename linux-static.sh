@@ -63,19 +63,20 @@ fi
 # Ensure subprojects directory exists
 mkdir -p subprojects
 # Install wraps for key C libraries
-meson wrap install glib --destdir=subprojects
-meson wrap install cairo --destdir=subprojects
-meson wrap install pango --destdir=subprojects
-meson wrap install pixman --destdir=subprojects
-meson wrap install gdk-pixbuf --destdir=subprojects
-meson wrap install fontconfig --destdir=subprojects
-meson wrap install expat --destdir=subprojects
-meson wrap install freetype --destdir=subprojects
-meson wrap install zlib --destdir=subprojects
+meson wrap install glib
+meson wrap install cairo
+meson wrap install pango
+meson wrap install pixman
+meson wrap install gdk-pixbuf
+meson wrap install fontconfig
+meson wrap install expat
+meson wrap install freetype
+meson wrap install zlib
 
 # 6. Configure Meson for static build
 meson setup build \
   --wrap-mode=forcefallback \
+  --subproject-dir=subprojects \
   --buildtype=release \
   --default-library=static \
   -Dtriplet=x86_64-unknown-linux-musl \
