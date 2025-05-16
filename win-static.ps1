@@ -48,7 +48,7 @@ $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
 Write-Host ""
-Write-Output "${esc}`e[44;97m=============================="
+Write-Output "${esc}`e[48;2;0;0;139m$esc[38;2;255;255;255m=============================="
 Write-Host "Environment Variables:${esc}`e[0m"
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
