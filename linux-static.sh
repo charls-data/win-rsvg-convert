@@ -39,13 +39,19 @@ export PATH="$CARGO_HOME/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
 
 # 2.1 Copy system libz.a into Rust MUSL sysroot to satisfy -lz
-SYSROOT="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-musl/lib"
-if [ -f /usr/lib/libz.a ]; then
-  cp /usr/lib/libz.a "$SYSROOT/"
-else
-  echo "Warning: /usr/lib/libz.a not found, -lz linking may fail" >&2
+ZLIB_A=""
+for path in /usr/lib/libz.a /usr/lib/x86_64-linux-gnu/libz.a; do
+  if [ -f "$path" ]; then
+    ZLIB_A="$path"
+    break
+  fi
+done
+if [ -z "$ZLIB_A" ]; then
+  echo "Error: static zlib library not found. Please install zlib-dev or zlib1g-dev." >&2
+  exit 1
 fi
-
+export LIBRARY_PATH="$(dirname "$ZLIB_A")${LIBRARY_PATH:+:}$LIBRARY_PATH"
+hhddaad
 # Ensure cargo-c (for cargo cbuild) is available
 if ! command -v cargo-cbuild >/dev/null 2>&1; then
   cargo install cargo-c
