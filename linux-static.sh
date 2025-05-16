@@ -50,6 +50,10 @@ fi
 git clone --depth 1 https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 
+# 4. Vendor Rust dependencies to avoid network SSL issues
+mkdir -p .cargo
+cargo vendor > .cargo/config || true
+
 # 5. Patch ci/Cargo.toml: insert version under [package] if missing
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
