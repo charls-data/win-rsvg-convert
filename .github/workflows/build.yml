@@ -35,23 +35,29 @@ jobs:
             -Path rsvg.ci.bin/bin/rsvg-convert.exe `
             -DestinationPath rsvg.ci.bin/bin/win-static-x64.zip
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name:     v${{ github.run_number }}
-          release_name: rsvg-convert ${{ github.run_number }}
-          draft:        false
-          prerelease:   false
+      - name: Extract rsvg-convert version
+        id: get_rc_version
+        shell: pwsh
+        run: |
+          $output = & .\rsvg.ci.bin\bin\rsvg-convert.exe
+          # get version number
+          if ($output -match 'version\s+(\d+\.\d+\.\d+)') {
+            $ver = $Matches[1]
+            Write-Host "Parsed version: $ver"
+            # set rc_version
+            "rc_version=$ver" | Out-File -Encoding utf8 -NoNewline $env:GITHUB_OUTPUT
+          } else {
+            Write-Error "Unable to parse version from: $output"
+            exit 1
+          }
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+      - name: Create & Publish Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          name: rsvg-convert-${{ steps.get_rc_version.outputs.rc_version }} build ${{ github.ref_name }}
+          artifacts: rsvg.ci.bin/bin/win-static-x64.zip
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url:         ${{ steps.create_release.outputs.upload_url }}
-          asset_path:         rsvg.ci.bin/bin/win-static-x64.zip
-          asset_name:         win-static-x64.zip
-          asset_content_type: application/zip
