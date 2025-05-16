@@ -18,9 +18,7 @@ jobs:
           $yellow = "`e[33m"
           $reset  = "`e[0m"
 
-          Write-Host "${green}✅ Success!${reset}"
-          Write-Host "${yellow}⚠️ Warning…${reset}"
-          Write-Host "${red}❌ Error!${reset}"
+          Write-Host "`e[44;37m`n==============================`e[0m"
 
       - name: Checkout source
         uses: actions/checkout@v3
