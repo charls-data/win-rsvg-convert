@@ -12,7 +12,7 @@ if [ "$OS" = "alpine" ]; then
   apk add --no-cache \
     build-base meson ninja pkgconfig \
     bash curl musl-dev musl-utils \
-    libunwind-dev \
+    libunwind-dev git \
     glib-dev cairo-dev pango-dev \
     libxml2-dev freetype-dev pixman-dev \
     gdk-pixbuf-dev
