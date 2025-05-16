@@ -7,7 +7,7 @@ $env:INST = "${env:rpath}\rsvg.ci.bin"
 $env:INST_PSX = $env:INST.Replace('\','/')
 $env:EINC = "${env:INST}\include"
 $env:EINC_GLIB = "${env:INST}\include\glib-2.0"
-$env:EINC_GLIB_INC = "${env:INST}\include\glib-2.0\include"
+$env:EINC_GLIB_INC = "${env:INST}\lib\glib-2.0\include"
 $env:ELIB = "${env:INST}\lib"
 
 # Rust Version
@@ -74,7 +74,7 @@ meson setup ..\gdk-pixbuf `
     -Dglycin=disabled `
     -Ddefault_library=static
 ninja install
-Set-Location -Path ".."
+cd ..
 Remove-Item -Path "_build_gdk_pixbuf" -Recurse -Force
 
 # get lib manually
@@ -100,12 +100,14 @@ foreach ($src in $libMappings.Keys) {
     Copy-Item -Path "${env:INST}\lib\$src" -Destination "${env:INST}\lib\$($libMappings[$src])" -Force
 }
 Copy-Item -Path "${env:INST}\lib\libz.a" -Destination "${env:INST}\lib\zlib.lib" -Force
+Get-ChildItem "${env:INST}\lib"
+Write-Host "${DeepBlueWhite}=============================="
 
 # =============================================================================
 #  Download and extract pkg-config, freetype, libxml2
 # =============================================================================
 Write-Host "${DeepBlueWhite}=============================="
-Write-Host "${DeepBlueWhite}Build gdk-pixbuf:"
+Write-Host "${DeepBlueWhite}Download and Extract pkg-config, freetype and libxml2:"
 Write-Host ""
 
 # Download
