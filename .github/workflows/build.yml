@@ -12,6 +12,21 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v3
 
+      - name: Locate Launch-VsDevShell.ps1
+        shell: pwsh
+        run: |
+          # 1. 用 vswhere 找到最新的 VS installationPath
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+      
+          # 2. 拼出脚本的完整路径
+          $launchScript = Join-Path $vsPath 'Common7\Tools\Launch-VsDevShell.ps1'
+      
+          Write-Host "Found VSDevShell script at:"
+          Write-Host "  $launchScript"
+
       - name: Build rsvg-convert
         shell: pwsh
         run: |
