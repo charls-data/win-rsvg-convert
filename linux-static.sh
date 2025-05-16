@@ -2,66 +2,46 @@
 #!/usr/bin/env sh
 set -euo pipefail
 
-# 0. Ensure HOME points to root in container to satisfy rustup
-export HOME=/root
-export RUSTUP_HOME="$HOME/.rustup"
-export CARGO_HOME="$HOME/.cargo"
-export PATH="$CARGO_HOME/bin:$PATH"
+# 1. 安装所有构建依赖（Ubuntu）
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential \
+  meson \
+  ninja-build \
+  pkg-config \
+  curl \
+  musl-tools \
+  libunwind-dev \
+  libglib2.0-dev \
+  libcairo2-dev \
+  libpango1.0-dev \
+  libxml2-dev \
+  libfreetype6-dev \
+  libpixman-1-dev \
+  gdk-pixbuf2.0-dev \
+  libssl-dev \
+  zlib1g-dev \
+  git
 
-# Detect OS (Ubuntu or Alpine)
-OS=""
-if [ -f /etc/os-release ]; then
-  . /etc/os-release
-  OS=$ID
-fi
-
-# 1. Install system dependencies, including git and compression libs
-if [ "$OS" = "alpine" ]; then
-  apk update
-  apk add --no-cache git
-  apk add --no-cache \
-    build-base meson ninja pkgconfig \
-    curl musl-dev musl-utils \
-    libunwind-dev \
-    glib-dev cairo-dev pango-dev \
-    libxml2-dev freetype-dev pixman-dev \
-    gdk-pixbuf-dev \
-    openssl-dev \
-    zlib-dev
-elif [ -x "$(command -v apt-get)" ]; then
-  sudo apt-get update
-  sudo apt-get install -y \
-    git build-essential meson ninja-build pkg-config \
-    curl musl-tools libunwind-dev \
-    libglib2.0-dev libcairo2-dev libpango1.0-dev \
-    libxml2-dev libfreetype6-dev libpixman-1-dev \
-    gdk-pixbuf2.0-dev \
-    libssl-dev \
-    zlib1g-dev
-else
-  echo "Unsupported OS: $OS" >&2
-  exit 1
-fi
-
-# 2. Install Rustup if missing, add MUSL target, and install cargo-c
+# 2. 安装 Rustup 并设置环境，安装 MUSL 目标和 cargo-c
 if [ ! -x "$(command -v rustup)" ]; then
   curl https://sh.rustup.rs -sSf | sh -s -- -y
+  . "$HOME/.cargo/env"
 fi
+export PATH="$HOME/.cargo/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
-if ! command -v cargo-cbuild >/dev/null 2>&1; then
-  cargo install cargo-c
-fi
+cargo install cargo-c
 
-# 3. Clone librsvg source and enter directory
+# 3. 克隆 librsvg 源码并进入目录
 git clone https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 
-# 4. Ensure ci/Cargo.toml has version under [package]
+# 4. 修补 ci/Cargo.toml：在 [package] 段后插入 version 字段（若不存在）
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
 
-# 5. Configure Meson for fully static build
+# 5. 使用 Meson 配置全静态构建
 meson setup build \
   --default-library=static \
   -Dtriplet=x86_64-unknown-linux-musl \
@@ -70,9 +50,9 @@ meson setup build \
   -Dintrospection=disabled \
   -Dvala=disabled
 
-# 6. Build and strip the binary
+# 6. 编译并去除符号
 ninja -C build
 strip build/rsvg-convert
 
-# 7. (Optional) Verify static linking
+# 7. （可选）验证静态链接
 ldd build/rsvg-convert || true
