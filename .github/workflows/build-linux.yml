@@ -1,0 +1,25 @@
+name: Build Static rsvg-convert on Linux
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-static:
+    name: Build rsvg-convert (static)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Run static build script
+        run: |
+          chmod +x linux-static.sh
+          ./linux-static.sh
+
+      - name: Upload rsvg-convert artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsvg-convert-static
+          path: librsvg/build/rsvg-convert
