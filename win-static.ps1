@@ -22,6 +22,7 @@ $env:PKG_CONFIG_VER = '0.29.2'
 # Preference
 $ErrorActionPreference = 'Stop'
 $esc = [char]27
+$DeepBlueWhite = "$esc[48;2;0;0;139m$esc[38;2;255;255;255m"
 
 # =============================================================================
 #  Install Meson
@@ -48,8 +49,8 @@ $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
 Write-Host ""
-Write-Output "${esc}`e[48;2;0;0;139m$esc[38;2;255;255;255m=============================="
-Write-Host "Environment Variables:${esc}`e[0m"
+Write-Output "$DeepBlueWhite=============================="
+Write-Host "${esc}`e[48;2;0;0;139m$esc[38;2;255;255;255mEnvironment Variables:"
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
 Write-Host "LIB: $env:LIB"
