@@ -30,24 +30,6 @@ apk add --no-cache \
   zlib-dev  \
   zlib-static
 
-# 2. Verify static zlib library presence and configure linker path
-ZLIB_A=""
-for path in /lib/libz.a /usr/lib/libz.a /usr/lib/x86_64-linux-gnu/libz.a; do
-  if [ -f "$path" ]; then
-    ZLIB_A="$path"
-    break
-  fi
-done
-if [ -z "$ZLIB_A" ]; then
-  echo "Error: static zlib library not found. Please install zlib-dev or zlib1g-dev." >&2
-  exit 1
-fi
-haha
-export LIBRARY_PATH="$(dirname "$ZLIB_A")${LIBRARY_PATH:+:}$LIBRARY_PATH"
-# Copy static zlib into Rust MUSL sysroot to satisfy -lz
-SYSROOT="$(rustc --print sysroot)/lib/rustlib/x86_64-unknown-linux-musl/lib"
-cp "$ZLIB_A" "$SYSROOT/"
-
 # 3. Install Rustup and add MUSL target
 if [ ! -x "$(command -v rustup)" ]; then
   curl https://sh.rustup.rs -sSf | sh -s -- -y
