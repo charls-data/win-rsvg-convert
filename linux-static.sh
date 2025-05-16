@@ -24,7 +24,10 @@ sudo apt-get install -y \
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 
-# 3. setup build
+# 3. rust target
+rustup target add x86_64-unknown-linux-musl
+
+# 4. setup build
 meson setup build \
   --buildtype=release \
   --default-library=static \
@@ -34,11 +37,11 @@ meson setup build \
   -Dintrospection=disabled \
   -Dvala=disabled
 
-# 4. build
+# 5. build
 ninja -C build
 
-# 5. Strip
+# 6. Strip
 strip build/rsvg-convert
 
-# 6. check dependencies
+# 7. check dependencies
 ldd build/rsvg-convert || true
