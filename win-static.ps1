@@ -21,9 +21,6 @@ $env:PKG_CONFIG_VER = '0.29.2'
 
 # Preference
 $ErrorActionPreference = 'Stop'
-$fgWhite = $PSStyle.Foreground.White
-$bgBlue  = $PSStyle.Background.Blue
-$reset   = $PSStyle.Reset
 
 # =============================================================================
 #  Install Meson
@@ -49,7 +46,8 @@ $env:PATH = "$env:USERPROFILE\AppData\Roaming\Python\Python39\Scripts;$env:PATH"
 $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
 $env:PATH = "$env:INST\bin;$env:PATH"
 
-Write-Output "$bgBlue$fgWhite`n==============================$reset"
+$esc = [char]27
+Write-Output "${esc}[44;37m`n==============================${esc}[0m"
 Write-Host "Environment Variables:" -ForegroundColor White -BackgroundColor Blue
 Write-Host "PATH: $env:PATH"
 Write-Host "INCLUDE: $env:INCLUDE"
