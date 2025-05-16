@@ -18,7 +18,8 @@ sudo apt-get install -y \
   libxml2-dev \
   libfreetype6-dev \
   libpixman-1-dev \
-  gdk-pixbuf2.0-dev
+  gdk-pixbuf2.0-dev \
+  libunwind-dev
 
 # 2. librsvg source
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
