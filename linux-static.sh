@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # 1. Install essential toolchain
-APK_DEPS="build-base autoconf automake libtool m4 musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info cmake linux-headers gcc-libs compiler-rt"
+APK_DEPS="build-base autoconf automake libtool m4 musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info cmake linux-headers libgcc compiler-rt"
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
