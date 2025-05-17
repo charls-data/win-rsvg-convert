@@ -231,6 +231,7 @@ meson setup build \
     -Ddocs=disabled \
     -Dintrospection=disabled \
     -Dvala=disabled \
+    -Dpixbuf-loader=disabled \
     -Ddefault_library=static
 ninja -C build
 strip build/rsvg-convert
