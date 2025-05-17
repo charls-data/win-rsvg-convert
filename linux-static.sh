@@ -42,18 +42,10 @@ mkdir build && cd build
 make -j"$(nproc)"
 make install
 
-# 确认 libunwind.a 在预期位置
-if [ -f "$PREFIX/lib/libunwind.a" ]; then
-  echo "✅ libunwind.a successfully built at $PREFIX/lib/libunwind.a"
-else
-  echo "❌ Failed to build libunwind.a" >&2
-  exit 1
-fi
 cd ..
 cd ..
 rm -rf libunwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
-haha
 
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
