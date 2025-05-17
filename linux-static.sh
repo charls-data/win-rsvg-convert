@@ -98,12 +98,14 @@ rustup target add x86_64-unknown-linux-musl
 CARGO_C_VER=0.10.13
 if ! command -v cargo-cbuild >/dev/null 2>&1; then
   echo "🌱 Downloading cargo-c-v${CARGO_C_VER} binary…"
-  URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/cargo-c-v${CARGO_C_VER}-x86_64-unknown-linux-musl.tar.gz"
+  URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/cargo-c-x86_64-unknown-linux-musl.tar.gz"
   mkdir -p "$HOME/.cargo/bin"
   curl -sSL "$URL" -o /tmp/cargo-c.tar.gz
   tar -xzf /tmp/cargo-c.tar.gz -C /tmp
-  mv /tmp/cargo-c "$HOME/.cargo/bin/cargo-c"
-  chmod +x "$HOME/.cargo/bin/cargo-c"
+  for bin in /tmp/cargo-c*; do
+    mv "$bin" "$HOME/.cargo/bin/"
+    chmod +x "$HOME/.cargo/bin/$(basename $bin)"
+  done
   rm /tmp/cargo-c.tar.gz
   echo "✔ cargo-c v${CARGO_C_VER} installed"
 else
