@@ -177,6 +177,7 @@ if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
+export RUSTFLAGS="-C panic=abort"
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
@@ -187,7 +188,6 @@ meson setup build \
     -Ddocs=disabled \
     -Dintrospection=disabled \
     -Dvala=disabled \
-    -Drustargs="-C panic=abort" \
     -Ddefault_library=static
 ninja -C build
 strip build/rsvg-convert
