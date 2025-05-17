@@ -16,8 +16,8 @@ PREFIX=$RPATH/CI_BIN
 mkdir -p $PREFIX
 export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 export PATH=$PREFIX/bin:$PATH
-export LIBRARY_PATH="$PREFIX/lib:${LIBRARY_PATH:-}"
-export C_INCLUDE_PATH="$PREFIX/include:${C_INCLUDE_PATH:-}"
+# export LIBRARY_PATH="$PREFIX/lib:${LIBRARY_PATH:-}"
+# export C_INCLUDE_PATH="$PREFIX/include:${C_INCLUDE_PATH:-}"
 DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
 NC="\033[0m"
 
@@ -47,7 +47,7 @@ unwind_version=$(
   LDFLAGS="-L$PREFIX/lib"
 make -j"$(nproc)"
 make install
-cat > "$PREFIX/lib/pkgconfig/libunwind.pc" << 'EOF'
+cat > "$PREFIX/lib/pkgconfig/libunwind.pc" <<EOF
 prefix=$PREFIX
 exec_prefix=\${prefix}
 libdir=\${exec_prefix}/lib
