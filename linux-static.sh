@@ -106,7 +106,7 @@ if ! command -v cargo-cbuild >/dev/null 2>&1; then
     mv "$bin" "$HOME/.cargo/bin/"
     chmod +x "$HOME/.cargo/bin/$(basename $bin)"
   done
-  rm /tmp/cargo-c.tar.gz
+  # rm /tmp/cargo-c.tar.gz
   echo "✔ cargo-c v${CARGO_C_VER} installed"
 else
   echo "✔ cargo-cbuild already available"
