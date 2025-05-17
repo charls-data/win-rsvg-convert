@@ -20,20 +20,20 @@ DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
 NC="\033[0m"
 
 # 3. Build gdk-pixbuf
-echo -e "${DeepBlueWhite}==============================${NC}"
+echo -e "${DeepBlueWhite}============================================================${NC}"
 echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
 mkdir -p _build_gdk_pixbuf && cd _build_gdk_pixbuf
-meson setup ../gdk-pixbuf `
-    --buildtype=release `
-    --prefix=$PREFIX `
-    -Dman=false `
-    -Dglycin=disabled `
+meson setup ../gdk-pixbuf \
+    --buildtype=release \
+    --prefix=$PREFIX \
+    -Dman=false \
+    -Dglycin=disabled \
     -Ddefault_library=static
 ninja install
 cd ..
 rm -rf _build_gdk_pixbuf
-echo -e "${DeepBlueWhite}==============================${NC}"
+echo -e "${DeepBlueWhite}============================================================${NC}"
 
 ls $PREFIX/bin
 ls $PREFIX/lib
