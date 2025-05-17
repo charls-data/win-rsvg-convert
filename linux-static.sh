@@ -29,18 +29,18 @@ echo -e "${DeepBlueWhite}Building unwind...${NC}"
 git clone https://github.com/libunwind/libunwind.git
 cd libunwind
 mkdir build && cd build
-export TARGET=x86_64-linux-gnu
-cmake .. \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX=$PREFIX \
-  -DLIBUNWIND_ENABLE_SHARED=OFF \
-  -DLIBUNWIND_ENABLE_STATIC=ON \
-  -DLIBUNWIND_INSTALL_HEADERS=ON \
-  -DLIBUNWIND_USE_COMPILER_RT=OFF \
-  -DLIBUNWIND_ENABLE_THREADS=OFF
+autoreconf -i
+
+../configure \
+  --prefix="$PREFIX"    \
+  --enable-static       \
+  --disable-shared      \
+  --disable-examples    \
+  --disable-tests       \
+  CFLAGS="-O2 -D__linux__"   \
+  LDFLAGS="-L$PREFIX/lib"
 make -j"$(nproc)"
 make install
-unset TARGET
 
 # 确认 libunwind.a 在预期位置
 if [ -f "$PREFIX/lib/libunwind.a" ]; then
@@ -54,6 +54,7 @@ cd ..
 rm -rf libunwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
 haha
+
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
 echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
