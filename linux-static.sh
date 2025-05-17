@@ -72,6 +72,9 @@ cd gdk-pixbuf
 if [ ! -d subprojects/glib ]; then
   meson wrap install glib
 fi
+echo "ls subprojects/glib"
+ls subprojects/glib
+echo "end"
 cat subprojects/glib/meson.build
 sed -i "/# Is statx()/,/endif/ s/if host_system != 'android'.*/if false/" subprojects/glib/meson.build
 sed -i "/glib_conf\.set('HAVE_STATX'/d" subprojects/glib/meson.build
