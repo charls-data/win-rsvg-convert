@@ -163,10 +163,11 @@ cargo vendor > .cargo/config || true
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
-export RUSTFLAGS="-C link-args=-L$PREFIX/lib"
+
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
+    --libdir="${PREFIX}/lib" \
     --pkg-config-path=$PKG_CONFIG_PATH \
     --cmake-prefix-path=$PREFIX \
     -Dtriplet=x86_64-unknown-linux-musl \
