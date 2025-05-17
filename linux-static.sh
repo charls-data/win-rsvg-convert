@@ -22,7 +22,6 @@ NC="\033[0m"
 echo RPATH: $RPATH
 echo HOME: $HOME
 echo PKG_CONFIG_PATH: $PKG_CONFIG_PATH
-haha
 
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
@@ -40,7 +39,100 @@ cd ..
 rm -rf _build_gdk_pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
 
-ls $PREFIX/bin
-ls $PREFIX/lib
-ls $PREFIX/lib/pkgconfig
-ls $PREFIX/include
+# 4. Build freetype
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}Building freetype...${NC}"
+git clone --depth 1 --no-tags https://gitlab.freedesktop.org/freetype/freetype.git
+mkdir -p _build_freetype && cd _build_freetype
+meson setup ../freetype \
+    --buildtype=release \
+    --prefix=$PREFIX \
+    --pkg-config-path=$PKG_CONFIG_PATH \
+    --cmake-prefix-path=$PREFIX \
+    -Ddefault_library=static
+ninja install
+cd ..
+rm -rf _build_freetype
+echo -e "${DeepBlueWhite}============================================================${NC}"
+
+# 5. Build libxml2
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}Building libxml2...${NC}"
+git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/libxml2.git
+mkdir -p _build_xml && cd _build_xml
+meson setup ../libxml2 \
+    --buildtype=release \
+    --prefix=$PREFIX \
+    -Diconv=disabled \
+    --pkg-config-path=$PKG_CONFIG_PATH \
+    --cmake-prefix-path=$PREFIX \
+    -Ddefault_library=static
+ninja install
+cd ..
+rm -rf _build_xml
+echo -e "${DeepBlueWhite}============================================================${NC}"
+
+# 6. Build pango
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}Building pango...${NC}"
+git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
+mkdir -p _build_pango && cd _build_pango
+meson setup ../pango \
+    --buildtype=release \
+    --prefix=$PREFIX \
+    -Dfontconfig=disabled \
+    --pkg-config-path=$PKG_CONFIG_PATH \
+    -Ddefault_library=static
+ninja install
+cd ..
+rm -rf _build_pango
+echo -e "${DeepBlueWhite}============================================================${NC}"
+
+# 7. Rust toolchain
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}Install Rust Toolchain...${NC}"
+if ! command -v rustup >/dev/null 2>&1; then
+  curl https://sh.rustup.rs -sSf | sh -s -- -y
+fi
+export PATH="$HOME/.cargo/bin:$PATH"
+rustup target add x86_64-unknown-linux-musl
+CARGO_C_VER=0.10.13
+if ! command -v cargo-cbuild >/dev/null 2>&1; then
+  echo "🌱 Downloading cargo-c-v${CARGO_C_VER} binary…"
+  URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/cargo-c-v${CARGO_C_VER}-x86_64-unknown-linux-musl.tar.gz"
+  mkdir -p "$HOME/.cargo/bin"
+  curl -sSL "$URL" -o /tmp/cargo-c.tar.gz
+  tar -xzf /tmp/cargo-c.tar.gz -C /tmp
+  mv /tmp/cargo-c "$HOME/.cargo/bin/cargo-c"
+  chmod +x "$HOME/.cargo/bin/cargo-c"
+  rm /tmp/cargo-c.tar.gz
+  echo "✔ cargo-c v${CARGO_C_VER} installed"
+else
+  echo "✔ cargo-cbuild already available"
+fi
+
+# 8. Build librsvg
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}Building librsvg...${NC}"
+git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
+cd librsvg
+mkdir -p .cargo
+cargo vendor > .cargo/config || true
+if ! grep -q '^version' ci/Cargo.toml; then
+  sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
+fi
+meson setup build \
+    --buildtype=release \
+    --prefix=$PREFIX \
+    --pkg-config-path=$PKG_CONFIG_PATH \
+    --cmake-prefix-path=$PREFIX \
+    -Dtriplet=x86_64-unknown-linux-musl \
+    -Dtests=false \
+    -Ddocs=disabled \
+    -Dintrospection=disabled \
+    -Dvala=disabled \
+    -Ddefault_library=static
+ninja -C build
+strip build/rsvg-convert
+ninja -C build install
+echo "rsvg-convert linked libs:"; ldd build/rsvg-convert || true
