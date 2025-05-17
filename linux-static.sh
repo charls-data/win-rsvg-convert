@@ -22,6 +22,7 @@ NC="\033[0m"
 echo RPATH: $RPATH
 echo HOME: $HOME
 echo PKG_CONFIG_PATH: $PKG_CONFIG_PATH
+echo TARGET: $TARGET
 
 # Build unwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
@@ -29,6 +30,7 @@ echo -e "${DeepBlueWhite}Building unwind...${NC}"
 git clone https://github.com/libunwind/libunwind.git
 cd libunwind
 mkdir build && cd build
+export TARGET=x86_64-linux-gnu
 cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -51,7 +53,7 @@ cd ..
 cd ..
 rm -rf libunwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
-
+haha
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
 echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
