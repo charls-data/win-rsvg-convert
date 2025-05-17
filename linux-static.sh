@@ -167,6 +167,8 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building librsvg...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
+export CARGO_HTTP_CAINFO=/etc/ssl/certs/ca-certificates.crt
+export CARGO_NET_GIT_FETCH_WITH_CLI=true
 # cargo +nightly vendor vendor
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
