@@ -80,7 +80,6 @@ mkdir -p _build_pango && cd _build_pango
 meson setup ../pango \
     --buildtype=release \
     --prefix=$PREFIX \
-    -Dfontconfig=disabled \
     --pkg-config-path=$PKG_CONFIG_PATH \
     -Ddefault_library=static
 ninja install
