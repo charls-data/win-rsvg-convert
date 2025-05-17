@@ -151,6 +151,7 @@ rustup toolchain install nightly-x86_64-unknown-linux-musl
 rustup default nightly-x86_64-unknown-linux-musl
 rustup target add x86_64-unknown-linux-musl
 rustup component add rust-src
+cargo install cargo-c
 export RUSTUP_TOOLCHAIN=nightly-x86_64-unknown-linux-musl
 
 # 8. Build librsvg
