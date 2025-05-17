@@ -10,7 +10,7 @@ apk add --no-cache $APK_DEPS
 update-ca-certificates
 # export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
-ls /usr/lib/libunwind.a /usr/lib/x86_64-linux-gnu/libunwind.a 2>/dev/null
+# ls /usr/lib/libunwind.a /usr/lib/x86_64-linux-gnu/libunwind.a 2>/dev/null
 
 # 脚本中判断
 if [ -f /usr/lib/libunwind.a ] || [ -f /usr/lib/x86_64-linux-gnu/libunwind.a ]; then
