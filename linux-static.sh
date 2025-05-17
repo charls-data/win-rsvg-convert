@@ -28,8 +28,8 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building unwind...${NC}"
 git clone https://github.com/libunwind/libunwind.git
 cd libunwind
-mkdir build && cd build
 autoreconf -i
+mkdir build && cd build
 
 ../configure \
   --prefix="$PREFIX"    \
