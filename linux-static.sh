@@ -172,7 +172,11 @@ echo -e "${DeepBlueWhite}Building librsvg...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 mkdir -p .cargo
-cargo vendor > .cargo/config || true
+cat > .cargo/config.toml << 'EOF'
+[profile.release]
+panic = "abort"
+EOF
+# cargo vendor > .cargo/config || true
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
