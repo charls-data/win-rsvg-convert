@@ -11,8 +11,6 @@ update-ca-certificates
 export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 export SSL_CERT_DIR=/etc/ssl/certs
 export OPENSSL_CERT_FILE=$SSL_CERT_FILE
-echo "Using SSL_CERT_FILE=$SSL_CERT_FILE"
-haha
 
 # 2. Set installation prefix and pkg-config paths
 RPATH=${GITHUB_WORKSPACE}
