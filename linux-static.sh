@@ -14,10 +14,15 @@ update-ca-certificates
 RPATH=${GITHUB_WORKSPACE}
 PREFIX=$RPATH/CI_BIN
 mkdir -p $PREFIX
-export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH
 export PATH=$PREFIX/bin:$PATH
 DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
 NC="\033[0m"
+
+echo RPATH: $RPATH
+echo HOME: $HOME
+echo PKG_CONFIG_PATH: $PKG_CONFIG_PATH
+haha
 
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
