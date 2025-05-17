@@ -74,7 +74,6 @@ meson subprojects download
 echo "ls subprojects/glib"
 ls subprojects/glib
 echo "end"
-cat subprojects/glib/meson.build
 sed -i "/# Is statx()/,/endif/ s/if host_system != 'android'.*/if false/" subprojects/glib/meson.build
 sed -i "/glib_conf\.set('HAVE_STATX'/d" subprojects/glib/meson.build
 cd ..
@@ -86,7 +85,6 @@ meson setup ../gdk-pixbuf \
     -Dglycin=disabled \
     -Dtests=false \
     -Dinstalled_tests=false \
-    -Dglib:statx=false \
     -Ddefault_library=static
 ninja install
 cd ..
