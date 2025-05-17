@@ -200,13 +200,25 @@ export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH:-}"
 # Link directly with libgcc_eh.a if it exists
 if [ -f /usr/lib/gcc/x86_64-alpine-linux-musl/*/libgcc_eh.a ]; then
   GCC_EH_PATH=$(find /usr/lib/gcc/x86_64-alpine-linux-musl -name libgcc_eh.a | head -1)
+  GCC_PATH=$(dirname $GCC_EH_PATH)
   echo "Found libgcc_eh.a at: $GCC_EH_PATH"
-  export LDFLAGS="-L${PREFIX}/lib $GCC_EH_PATH ${LDFLAGS:-}"
-  export RUSTFLAGS="-C panic=abort -C link-arg=$GCC_EH_PATH -C link-arg=-lunwind"
+  # Add libgcc.a explicitly 
+  export LDFLAGS="-L${PREFIX}/lib $GCC_EH_PATH $GCC_PATH/libgcc.a ${LDFLAGS:-}"
+  export RUSTFLAGS="-C panic=abort -C link-arg=$GCC_EH_PATH -C link-arg=$GCC_PATH/libgcc.a -C link-arg=-lunwind"
 else
   echo "libgcc_eh.a not found, using alternative approach"
-  export LDFLAGS="-L${PREFIX}/lib -lgcc -static-libgcc ${LDFLAGS:-}"
-  export RUSTFLAGS="-C panic=abort -C link-arg=-lgcc -C link-arg=-lunwind -C link-arg=-static-libgcc"
+  # Try to find compiler-rt libraries
+  COMPILER_RT_PATH=$(find /usr/lib -name libclang_rt.builtins-x86_64.a 2>/dev/null || echo "")
+  if [ -n "$COMPILER_RT_PATH" ]; then
+    echo "Found compiler-rt at: $COMPILER_RT_PATH"
+    export LDFLAGS="-L${PREFIX}/lib -lgcc -static-libgcc $COMPILER_RT_PATH ${LDFLAGS:-}"
+    export RUSTFLAGS="-C panic=abort -C link-arg=-lgcc -C link-arg=$COMPILER_RT_PATH -C link-arg=-lunwind -C link-arg=-static-libgcc"
+  else
+    # Fall back to explicitly specifying the missing symbol
+    echo "Using fallback approach with explicit compiler-rt libraries"
+    export LDFLAGS="-L${PREFIX}/lib -lgcc -static-libgcc ${LDFLAGS:-}"
+    export RUSTFLAGS="-C panic=abort -C link-arg=-lgcc -C link-arg=-lunwind -C link-arg=-static-libgcc -C link-arg=-Wl,--push-state -C link-arg=-Wl,--whole-archive -C link-arg=/usr/lib/gcc/x86_64-alpine-linux-musl/*/libgcc.a -C link-arg=-Wl,--pop-state"
+  fi
 fi
 
 meson setup build \
