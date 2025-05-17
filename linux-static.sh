@@ -186,8 +186,8 @@ EOF
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
-export LDFLAGS="-L${PREFIX}/lib -lgcc -lunwind ${LDFLAGS:-}"
-export RUSTFLAGS="-C link-arg=-lgcc -C link-arg=-lunwind"
+export LDFLAGS="-L${PREFIX}/lib -static-libgcc ${LDFLAGS:-}"
+export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib -C link-arg=-lunwind -C link-arg=-static-libgcc -C link-search=native=${PREFIX}/lib"
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
