@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # 1. Install essential toolchain
-APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static"
+APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info-dev"
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
