@@ -86,7 +86,8 @@ meson setup ../gdk-pixbuf \
     -Dglycin=disabled \
     -Dtests=false \
     -Dinstalled_tests=false \
-    -Ddefault_library=static
+    -Ddefault_library=static \
+    -Dglib:tests=false
 ninja install
 cd ..
 rm -rf _build_gdk_pixbuf
@@ -117,6 +118,7 @@ meson setup ../libxml2 \
     --buildtype=release \
     --prefix=$PREFIX \
     -Diconv=disabled \
+    -Ddocs=disabled \
     --pkg-config-path=$PKG_CONFIG_PATH \
     --cmake-prefix-path=$PREFIX \
     -Ddefault_library=static
@@ -136,7 +138,11 @@ meson setup ../pango \
     --pkg-config-path=$PKG_CONFIG_PATH \
     -Dbuild-examples=false \
     -Dbuild-testsuite=false \
-    -Ddefault_library=static
+    -Ddefault_library=static \
+    -Dcairo:tests=disabled \
+    -Dharfbuzz:tests=disabled \
+    -Dfontconfig:tests=disabled \
+    -Dfribidi:tests=false
 ninja install
 cd ..
 rm -rf _build_pango
@@ -171,7 +177,14 @@ build-std-features = []
 
 [profile.release]
 panic = "abort"
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
 EOF
+cargo vendor vendor
 # cargo vendor > .cargo/config || true
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
