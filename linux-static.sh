@@ -166,6 +166,7 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building librsvg...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
+cargo +nightly vendor vendor
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
 [build]
@@ -184,7 +185,7 @@ replace-with = "vendored-sources"
 [source.vendored-sources]
 directory = "vendor"
 EOF
-cargo vendor vendor
+
 # cargo vendor > .cargo/config || true
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
