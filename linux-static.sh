@@ -41,7 +41,6 @@ unwind_version=$(
   --prefix="$PREFIX"    \
   --enable-static       \
   --disable-shared      \
-  --disable-examples    \
   --disable-tests       \
   CFLAGS="-O2 -D__linux__"   \
   LDFLAGS="-L$PREFIX/lib"
@@ -164,6 +163,7 @@ cargo vendor > .cargo/config || true
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
+export RUSTFLAGS="-C link-args=-L$PREFIX/lib"
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
