@@ -74,6 +74,9 @@ meson setup ../gdk-pixbuf \
     --prefix=$PREFIX \
     -Dman=false \
     -Dglycin=disabled \
+    -Dtests=false \
+    -Dinstalled_tests=false \
+    -Dglib:statx=false \
     -Ddefault_library=static
 ninja install
 cd ..
@@ -122,6 +125,8 @@ meson setup ../pango \
     --buildtype=release \
     --prefix=$PREFIX \
     --pkg-config-path=$PKG_CONFIG_PATH \
+    -Dbuild-examples=false \
+    -Dbuild-testsuite=false \
     -Ddefault_library=static
 ninja install
 cd ..
