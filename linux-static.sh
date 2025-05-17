@@ -69,8 +69,8 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
 cd gdk-pixbuf
-echo "wrap glib"
-meson wrap install glib
+echo "download"
+meson subprojects download
 echo "ls subprojects/glib"
 ls subprojects/glib
 echo "end"
