@@ -69,7 +69,10 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
 cd gdk-pixbuf
-meson wrap install glib
+if [ ! -d subprojects/glib ]; then
+  meson wrap install glib
+fi
+cat subprojects/glib/meson.build
 sed -i "/# Is statx()/,/endif/ s/if host_system != 'android'.*/if false/" subprojects/glib/meson.build
 sed -i "/glib_conf\.set('HAVE_STATX'/d" subprojects/glib/meson.build
 cd ..
