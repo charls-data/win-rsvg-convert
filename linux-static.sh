@@ -10,6 +10,9 @@ apk add --no-cache $APK_DEPS
 update-ca-certificates
 export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 export SSL_CERT_DIR=/etc/ssl/certs
+export OPENSSL_CERT_FILE=$SSL_CERT_FILE
+echo "Using SSL_CERT_FILE=$SSL_CERT_FILE"
+haha
 
 # 2. Set installation prefix and pkg-config paths
 RPATH=${GITHUB_WORKSPACE}
@@ -166,7 +169,7 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building librsvg...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
-cargo +nightly vendor vendor
+# cargo +nightly vendor vendor
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
 [build]
@@ -178,15 +181,8 @@ build-std-features = []
 
 [profile.release]
 panic = "abort"
-
-[source.crates-io]
-replace-with = "vendored-sources"
-
-[source.vendored-sources]
-directory = "vendor"
 EOF
 
-# cargo vendor > .cargo/config || true
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
