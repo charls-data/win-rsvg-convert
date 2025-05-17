@@ -11,13 +11,13 @@ update-ca-certificates
 # export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 # 2. Set installation prefix and pkg-config paths
-RPATH = $GITHUB_WORKSPACE
-PREFIX = $RPATH/CI_BIN
+RPATH=${GITHUB_WORKSPACE}
+PREFIX=$RPATH/CI_BIN
 mkdir -p $PREFIX
 export PKG_CONFIG_PATH = $PREFIX/lib/pkgconfig
 export PATH = $PREFIX/bin:$PATH
-DeepBlueWhite = "\033[48;2;0;0;139m\033[38;2;255;255;255m"
-NC = "\033[0m"
+DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
+NC="\033[0m"
 
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}==============================${NC}"
