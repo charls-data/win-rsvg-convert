@@ -4,11 +4,21 @@
 set -euo pipefail
 
 # 1. Install essential toolchain
-APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info"
+APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info libunwind-dev"
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
 # export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+ls /usr/lib/libunwind.a /usr/lib/x86_64-linux-gnu/libunwind.a 2>/dev/null
+
+# 脚本中判断
+if [ -f /usr/lib/libunwind.a ] || [ -f /usr/lib/x86_64-linux-gnu/libunwind.a ]; then
+  echo "✅ libunwind.a 已存在"
+else
+  echo "❌ libunwind.a 未找到"
+fi
+haha
 
 # 2. Set installation prefix and pkg-config paths
 RPATH=${GITHUB_WORKSPACE}
