@@ -8,7 +8,8 @@ APK_DEPS="build-base autoconf automake libtool m4 musl-dev pkgconfig curl git me
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
-# export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+export SSL_CERT_DIR=/etc/ssl/certs
 
 # 2. Set installation prefix and pkg-config paths
 RPATH=${GITHUB_WORKSPACE}
