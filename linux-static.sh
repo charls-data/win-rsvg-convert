@@ -4,21 +4,11 @@
 set -euo pipefail
 
 # 1. Install essential toolchain
-APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info libunwind-dev"
+APK_DEPS="build-base musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info cmake"
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
 # export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-
-# ls /usr/lib/libunwind.a /usr/lib/x86_64-linux-gnu/libunwind.a 2>/dev/null
-
-# 脚本中判断
-if [ -f /usr/lib/libunwind.a ] || [ -f /usr/lib/x86_64-linux-gnu/libunwind.a ]; then
-  echo "✅ libunwind.a 已存在"
-else
-  echo "❌ libunwind.a 未找到"
-fi
-haha
 
 # 2. Set installation prefix and pkg-config paths
 RPATH=${GITHUB_WORKSPACE}
@@ -32,6 +22,35 @@ NC="\033[0m"
 echo RPATH: $RPATH
 echo HOME: $HOME
 echo PKG_CONFIG_PATH: $PKG_CONFIG_PATH
+
+# Build unwind
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}Building unwind...${NC}"
+git clone https://github.com/libunwind/libunwind.git
+cd libunwind
+mkdir build && cd build
+cmake .. \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  -DLIBUNWIND_ENABLE_SHARED=OFF \
+  -DLIBUNWIND_ENABLE_STATIC=ON \
+  -DLIBUNWIND_INSTALL_HEADERS=ON \
+  -DLIBUNWIND_USE_COMPILER_RT=OFF \
+  -DLIBUNWIND_ENABLE_THREADS=OFF
+make -j"$(nproc)"
+make install
+
+# 确认 libunwind.a 在预期位置
+if [ -f "$PREFIX/lib/libunwind.a" ]; then
+  echo "✅ libunwind.a successfully built at $PREFIX/lib/libunwind.a"
+else
+  echo "❌ Failed to build libunwind.a" >&2
+  exit 1
+fi
+cd ..
+cd ..
+rm -rf libunwind
+echo -e "${DeepBlueWhite}============================================================${NC}"
 
 # 3. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
