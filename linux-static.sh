@@ -178,6 +178,7 @@ if ! grep -q '^version' ci/Cargo.toml; then
 fi
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
 export RUSTFLAGS="-C panic=abort"
+export CARGO_PROFILE_RELEASE_PANIC=abort
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
