@@ -31,10 +31,12 @@ echo -e "${DeepBlueWhite}Building unwind...${NC}"
 git clone https://github.com/libunwind/libunwind.git
 cd libunwind
 autoreconf -i
-unwind_version=$(sed -n "s/^AC_INIT(\[libunwind\],\s*\[\([^]]*\)\].*/\1/p" configure.ac)
-echo "Parsed libunwind version: $unwind_version"
 mkdir build && cd build
-
+unwind_version=$(
+  ../configure --version \
+    | head -n1 \
+    | awk '{ print $NF }'
+)
 ../configure \
   --prefix="$PREFIX"    \
   --enable-static       \
@@ -57,7 +59,7 @@ Version: $unwind_version
 Libs: -L\${libdir} -lunwind
 Cflags: -I\${includedir}
 EOF
-
+cat "$PREFIX/lib/pkgconfig/libunwind.pc"
 cd ..
 cd ..
 rm -rf libunwind
