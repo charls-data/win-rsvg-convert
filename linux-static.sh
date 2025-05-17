@@ -22,7 +22,6 @@ NC="\033[0m"
 echo RPATH: $RPATH
 echo HOME: $HOME
 echo PKG_CONFIG_PATH: $PKG_CONFIG_PATH
-echo TARGET: $TARGET
 
 # Build unwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
@@ -41,6 +40,7 @@ cmake .. \
   -DLIBUNWIND_ENABLE_THREADS=OFF
 make -j"$(nproc)"
 make install
+unset TARGET
 
 # 确认 libunwind.a 在预期位置
 if [ -f "$PREFIX/lib/libunwind.a" ]; then
