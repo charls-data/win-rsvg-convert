@@ -171,23 +171,43 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}Building librsvg...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
+
 export CARGO_HTTP_CAINFO=/etc/ssl/certs/ca-certificates.crt
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
+
+rustup toolchain install nightly
+rustup default nightly
+rustup component add rust-src --toolchain nightly
+
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
 [build]
 target = "x86_64-unknown-linux-musl"
 
+[unstable]
+build-std = ["std", "panic_abort"]
+build-std-features = ["panic_immediate_abort"]
+
 [profile.release]
-panic = "abort"  # Disable unwinding to avoid _Unwind_Resume issues
+panic = "abort"
 EOF
 
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
-export LIBRARY_PATH="${PREFIX}/lib:/usr/lib/gcc/x86_64-alpine-linux-musl/14.2.0/:${LIBRARY_PATH:-}"
-export LDFLAGS="-L${PREFIX}/lib -L/usr/lib/gcc/x86_64-alpine-linux-musl/14.2.0/ -static-libgcc ${LDFLAGS:-}"
-export RUSTFLAGS="-C panic=abort -C link-arg=-L${PREFIX}/lib -C link-arg=-L/usr/lib/gcc/x86_64-alpine-linux-musl/14.2.0/ -C link-arg=-lunwind -C link-arg=-static-libgcc -L ${PREFIX}/lib"
+
+export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH:-}"
+# Link directly with libgcc_eh.a if it exists
+if [ -f /usr/lib/gcc/x86_64-alpine-linux-musl/*/libgcc_eh.a ]; then
+  GCC_EH_PATH=$(find /usr/lib/gcc/x86_64-alpine-linux-musl -name libgcc_eh.a | head -1)
+  echo "Found libgcc_eh.a at: $GCC_EH_PATH"
+  export LDFLAGS="-L${PREFIX}/lib $GCC_EH_PATH ${LDFLAGS:-}"
+  export RUSTFLAGS="-C panic=abort -C link-arg=$GCC_EH_PATH -C link-arg=-lunwind"
+else
+  echo "libgcc_eh.a not found, using alternative approach"
+  export LDFLAGS="-L${PREFIX}/lib -lgcc -static-libgcc ${LDFLAGS:-}"
+  export RUSTFLAGS="-C panic=abort -C link-arg=-lgcc -C link-arg=-lunwind -C link-arg=-static-libgcc"
+fi
 
 meson setup build \
     --buildtype=release \
