@@ -68,6 +68,11 @@ echo -e "${DeepBlueWhite}=======================================================
 echo -e "${DeepBlueWhite}============================================================${NC}"
 echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
+cd gdk-pixbuf
+meson wrap install glib
+sed -i "/# Is statx()/,/endif/ s/if host_system != 'android'.*/if false/" subprojects/glib/meson.build
+sed -i "/glib_conf\.set('HAVE_STATX'/d" subprojects/glib/meson.build
+cd ..
 mkdir -p _build_gdk_pixbuf && cd _build_gdk_pixbuf
 meson setup ../gdk-pixbuf \
     --buildtype=release \
@@ -179,6 +184,7 @@ meson setup build \
     -Ddocs=disabled \
     -Dintrospection=disabled \
     -Dvala=disabled \
+    -Drustargs="-C panic=abort" \
     -Ddefault_library=static
 ninja -C build
 strip build/rsvg-convert
