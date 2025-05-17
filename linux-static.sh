@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # 1. Install essential toolchain
-APK_DEPS="build-base autoconf automake libtool m4 musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info cmake linux-headers"
+APK_DEPS="build-base autoconf automake libtool m4 musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info cmake linux-headers gcc-libs compiler-rt"
 apk update
 apk add --no-cache $APK_DEPS
 update-ca-certificates
@@ -186,7 +186,8 @@ EOF
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
-export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS:-}"
+export LDFLAGS="-L${PREFIX}/lib -lgcc -lunwind ${LDFLAGS:-}"
+export RUSTFLAGS="-C link-arg=-lgcc -C link-arg=-lunwind"
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
