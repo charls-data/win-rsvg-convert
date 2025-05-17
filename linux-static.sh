@@ -16,6 +16,8 @@ PREFIX=$RPATH/CI_BIN
 mkdir -p $PREFIX
 export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 export PATH=$PREFIX/bin:$PATH
+export LIBRARY_PATH="$PREFIX/lib:${LIBRARY_PATH:-}"
+export C_INCLUDE_PATH="$PREFIX/include:${C_INCLUDE_PATH:-}"
 DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
 NC="\033[0m"
 
@@ -29,6 +31,8 @@ echo -e "${DeepBlueWhite}Building unwind...${NC}"
 git clone https://github.com/libunwind/libunwind.git
 cd libunwind
 autoreconf -i
+unwind_version=$(sed -n "s/^AC_INIT(\[libunwind\],\s*\[\([^]]*\)\].*/\1/p" configure.ac)
+echo "Parsed libunwind version: $unwind_version"
 mkdir build && cd build
 
 ../configure \
@@ -41,6 +45,18 @@ mkdir build && cd build
   LDFLAGS="-L$PREFIX/lib"
 make -j"$(nproc)"
 make install
+cat > "$PREFIX/lib/pkgconfig/libunwind.pc" << 'EOF'
+prefix=$PREFIX
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: libunwind
+Description: LLVM libunwind library
+Version: $unwind_version
+Libs: -L\${libdir} -lunwind
+Cflags: -I\${includedir}
+EOF
 
 cd ..
 cd ..
