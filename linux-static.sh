@@ -152,15 +152,19 @@ echo -e "${DeepBlueWhite}=======================================================
 # 7. Rust toolchain
 echo -e "${DeepBlueWhite}============================================================${NC}"
 echo -e "${DeepBlueWhite}Install Rust Toolchain...${NC}"
-curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain none
+curl https://sh.rustup.rs -sSf | sh -s -- -y
 export PATH="$HOME/.cargo/bin:$PATH"
-
-rustup toolchain install nightly-x86_64-unknown-linux-musl
-rustup default nightly-x86_64-unknown-linux-musl
 rustup target add x86_64-unknown-linux-musl
-rustup component add rust-src
-cargo install cargo-c
-export RUSTUP_TOOLCHAIN=nightly-x86_64-unknown-linux-musl
+CARGO_C_VER=0.10.13
+URL="https://github.com/lu-zero/cargo-c/releases/download/v${CARGO_C_VER}/cargo-c-x86_64-unknown-linux-musl.tar.gz"
+mkdir -p "$HOME/.cargo/bin"
+curl -sSL "$URL" -o /tmp/cargo-c.tar.gz
+tar -xzf /tmp/cargo-c.tar.gz -C /tmp
+for bin in /tmp/cargo-c*; do
+  mv "$bin" "$HOME/.cargo/bin/"
+  chmod +x "$HOME/.cargo/bin/$(basename $bin)"
+done
+echo "✔ cargo-c v${CARGO_C_VER} installed"
 
 # 8. Build librsvg
 echo -e "${DeepBlueWhite}============================================================${NC}"
@@ -169,25 +173,12 @@ git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 export CARGO_HTTP_CAINFO=/etc/ssl/certs/ca-certificates.crt
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
-# cargo +nightly vendor vendor
-mkdir -p .cargo
-cat > .cargo/config.toml << 'EOF'
-[build]
-target = "x86_64-unknown-linux-musl"
-
-[unstable]
-build-std = ["std", "panic_abort"]
-build-std-features = []
-
-[profile.release]
-panic = "abort"
-EOF
 
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
 export LDFLAGS="-L${PREFIX}/lib -static-libgcc ${LDFLAGS:-}"
-export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib -C link-arg=-lunwind -C link-arg=-static-libgcc -C link-search=native=${PREFIX}/lib"
+export RUSTFLAGS="-C link-arg=-L${PREFIX}/lib -C link-arg=-lunwind -C link-arg=-static-libgcc -L ${PREFIX}/lib"
 meson setup build \
     --buildtype=release \
     --prefix=$PREFIX \
