@@ -20,8 +20,8 @@ jobs:
           chmod +x linux-static.sh
           ./linux-static.sh
 
-      - name: Upload rsvg-convert artifact
+      - name: Upload install folder
         uses: actions/upload-artifact@v4
         with:
-          name: rsvg-convert-static
-          path: librsvg/build/rsvg-convert
+          name: librsvg-windows
+          path: CI_BIN/**

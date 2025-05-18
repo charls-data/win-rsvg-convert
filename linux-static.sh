@@ -2,8 +2,12 @@
 
 #!/usr/bin/env sh
 set -euo pipefail
+DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
+NC="\033[0m"
 
 # 1. Install essential toolchain
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}1 of 10: toolchain${NC}"
 APK_DEPS="build-base autoconf automake libtool m4 musl-dev pkgconfig curl git meson ninja ca-certificates openssl libressl-dev zlib-dev zlib-static shared-mime-info cmake linux-headers libgcc compiler-rt"
 apk update
 apk add --no-cache $APK_DEPS
@@ -11,25 +15,27 @@ update-ca-certificates
 export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 export SSL_CERT_DIR=/etc/ssl/certs
 export OPENSSL_CERT_FILE=$SSL_CERT_FILE
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
 
 # 2. Set installation prefix and pkg-config paths
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}2 of 10: ENVs${NC}"
 RPATH=${GITHUB_WORKSPACE}
 PREFIX=$RPATH/CI_BIN
 mkdir -p $PREFIX
 export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 export PATH=$PREFIX/bin:$PATH
-# export LIBRARY_PATH="$PREFIX/lib:${LIBRARY_PATH:-}"
-# export C_INCLUDE_PATH="$PREFIX/include:${C_INCLUDE_PATH:-}"
-DeepBlueWhite="\033[48;2;0;0;139m\033[38;2;255;255;255m"
-NC="\033[0m"
 
 echo RPATH: $RPATH
 echo HOME: $HOME
 echo PKG_CONFIG_PATH: $PKG_CONFIG_PATH
-
-# Build unwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Building unwind...${NC}"
+echo ""
+
+# 3. Build unwind
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}3 of 10: Build libunwind${NC}"
 git clone https://github.com/libunwind/libunwind.git
 cd libunwind
 autoreconf -i
@@ -65,10 +71,11 @@ cd ..
 cd ..
 rm -rf libunwind
 echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
 
-# 3. Build gdk-pixbuf
+# 4. Build gdk-pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Building gdk-pixbuf...${NC}"
+echo -e "${DeepBlueWhite}4 of 10: Build gdk-pixbuf${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/gdk-pixbuf.git
 cd gdk-pixbuf
 echo "download"
@@ -93,10 +100,11 @@ ninja install
 cd ..
 rm -rf _build_gdk_pixbuf
 echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
 
-# 4. Build freetype
+# 5. Build freetype
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Building freetype...${NC}"
+echo -e "${DeepBlueWhite}5 of 10: Build freetype${NC}"
 git clone --depth 1 --no-tags https://gitlab.freedesktop.org/freetype/freetype.git
 mkdir -p _build_freetype && cd _build_freetype
 meson setup ../freetype \
@@ -109,10 +117,11 @@ ninja install
 cd ..
 rm -rf _build_freetype
 echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
 
-# 5. Build libxml2
+# 6. Build libxml2
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Building libxml2...${NC}"
+echo -e "${DeepBlueWhite}6 of 10: Build libxml2${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/libxml2.git
 mkdir -p _build_xml && cd _build_xml
 meson setup ../libxml2 \
@@ -127,10 +136,11 @@ ninja install
 cd ..
 rm -rf _build_xml
 echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
 
-# 6. Build pango
+# 7. Build pango
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Building pango...${NC}"
+echo -e "${DeepBlueWhite}7 of 10: Build pango${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/pango.git
 mkdir -p _build_pango && cd _build_pango
 meson setup ../pango \
@@ -148,10 +158,11 @@ ninja install
 cd ..
 rm -rf _build_pango
 echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
 
-# 7. Rust toolchain
+# 8. Rust toolchain
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Install Rust Toolchain...${NC}"
+echo -e "${DeepBlueWhite}8 of 10: Install Rust Toolchain${NC}"
 curl https://sh.rustup.rs -sSf | sh -s -- -y
 export PATH="$HOME/.cargo/bin:$PATH"
 rustup target add x86_64-unknown-linux-musl
@@ -165,20 +176,23 @@ for bin in /tmp/cargo-c*; do
   chmod +x "$HOME/.cargo/bin/$(basename $bin)"
 done
 echo "✔ cargo-c v${CARGO_C_VER} installed"
-
-# 8. Build librsvg
 echo -e "${DeepBlueWhite}============================================================${NC}"
-echo -e "${DeepBlueWhite}Building librsvg...${NC}"
+echo ""
+
+# 9. Build librsvg
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}9 of 10: Build librsvg${NC}"
 git clone --depth 1 --no-tags https://gitlab.gnome.org/GNOME/librsvg.git
 cd librsvg
 
+# fix cargo ssl error
 export CARGO_HTTP_CAINFO=/etc/ssl/certs/ca-certificates.crt
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 
+# fix _Unwind_* undefined error
 rustup toolchain install nightly
 rustup default nightly
 rustup component add rust-src --toolchain nightly
-
 mkdir -p .cargo
 cat > .cargo/config.toml << 'EOF'
 [build]
@@ -192,10 +206,12 @@ build-std-features = ["panic_immediate_abort"]
 panic = "abort"
 EOF
 
+# ci/Cargo.toml missing version
 if ! grep -q '^version' ci/Cargo.toml; then
   sed -i '/^\[package\]/a version = "0.0.0"' ci/Cargo.toml
 fi
 
+# static link to libgcc
 export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH:-}"
 # Link directly with libgcc_eh.a if it exists
 if [ -f /usr/lib/gcc/x86_64-alpine-linux-musl/*/libgcc_eh.a ]; then
@@ -234,6 +250,14 @@ meson setup build \
     -Dpixbuf-loader=disabled \
     -Ddefault_library=static
 ninja -C build
-strip build/rsvg-convert
 ninja -C build install
-echo "rsvg-convert linked libs:"; ldd build/rsvg-convert || true
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
+
+# 10. strip and check
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo -e "${DeepBlueWhite}10 of 10: Strip and Check${NC}"
+strip "$PREFIX/bin/rsvg-convert"
+echo "rsvg-convert linked libs:"; ldd "$PREFIX/bin/rsvg-convert" || true
+echo -e "${DeepBlueWhite}============================================================${NC}"
+echo ""
